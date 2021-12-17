@@ -1,69 +1,76 @@
 """
 This script implements the forward simulation of the dynamical equation
-of motion for the chameleon system
+of motion for the chameleon system.
 """
 import numpy as np
+import derivatives as d
+from collections import deque
+
 
 class Chameleon:
     def __init__(
-        self, n_elems: int = 10, length: float = 1, E: float = 1, alpha: float = 1
+        self,
+        target_pos=2,
+        n_elems: int = 10,
+        length: float = 1,
+        E: float = 1,
+        alpha: float = 1,
+        dt: float = 1e-3,
+        T: float = 10,
     ):
+        self.target_pos = target_pos
         self.n_elems = n_elems
         self.length = length
         self.E = E
         self.alpha = alpha
-        self.pos_0 = np.linspace(1, length, n_elems)
-        self.pos_f = np.linspace(1, length, n_elems)
-        self.disp = self.pos_f - self.pos_0
+        self.pos_0 = np.linspace(0, length, n_elems)
+        self.pos_f = np.linspace(0, length, n_elems)
+        self.disp_current = self.pos_f - self.pos_0
+        self.disp_previous = 0
+        self.dt = dt
+        self.T = T
+        self.n_steps = int(self.T / self.dt)
+        self.position_history = deque([], maxlen=self.n_steps)
 
-def disp_time_derivative(disp_new: np.ndarray, disp_old: np.ndarray, delta_t: float) -> np.ndarray:
-    """
-    Compute the time derivative of u. (using Backwards Euler? so method here
-    may be too simple)
-    """
-    du_dt = (disp_new - disp_old)/delta_t
-    return du_dt
+    def update_disp(self, active_torque: np.ndarray):
+        internal_stress = (self.E / self.alpha) * d.u_second_space_derivative(
+            self.disp_current, self.pos_f
+        )
+        external_stress = (1 / self.alpha) * d.active_torque_deriv(
+            active_torque, self.pos_f
+        )
+        new_disp = self.disp_current + self.dt * (internal_stress + external_stress)
+        self.disp_previous = self.disp_current
+        self.disp_current = new_disp
 
-def u_space_derivative(disp: np.ndarray, pos: np.ndarray) -> np.ndarray:
-    """
-    Compute the first spatial derivative of displacement with repect
-    to position. I think numpy handles the averaging of left and right and
-    also handles the boundaries properly. Might need to do some kind of
-    interpolation if things are too bad.
-    """
-    # (u_i - u_(i-1)) / (x_i - x_(i-1))
-    deriv = np.gradient(disp, varargs=pos)
-    return deriv
+    def update_pos(self):
+        # think I should use previous position to get new position
+        self.pos_f = self.disp_current + self.pos_f
+        self.pos_f[0] = 0  # boundary condition
 
-def u_second_space_derivative(disp: np.ndarray, pos: np.ndarray) -> np.ndarray:
-    """
-    Compute second spatial derivative of dipslacement with respect to position.
-    Don't see any easy built in functions built to handle this. Probably exists
-    """
-    pass
+    def step(self, torque: np.ndarray):
+        """
+        Move the simulation forward one step in time. Update the position of
+        each element.
+        """
+        self.update_disp(torque)
+        self.update_pos()
+        self.position_history.append(self.pos_f)
 
-def update_pos(pos_0: np.ndarray, disp: np.ndarray) -> np.ndarray:
-    """
-    Compute current position. May want to use position from last frame instead
-    of original position but the basic idea is here.
-    """
-    pos_f = disp + pos_0
-    return pos_f
+    def forward_simulate(self, torque):
+        """
+        Forward simulate the tongue for a fixed amount of time
+        """
+        for i in range(self.n_steps):  # running full forward simulation now.
+            self.step(torque)
 
-def check_dist_target(pos_tongue: np.ndarray, pos_target: np.ndarray) -> float:
-    """
-    Compute distance between tip of the tongue and the target
-    """
-    distance = pos_tongue[-1] - pos_target[0]
-    if distance < 0:
-        print("haven't reached")
-    if distance > 0:
-        print("overshot")
-    return distance
-
-def active_torque_deriv(torque: np.ndarray, x: np.ndarray) -> np.ndarray:
-    """
-    compute derivative of the active torque. 
-    """
-    deriv = np.gradient(torque, x)
-    return deriv
+    def check_target_dist(self):
+        """
+        Check distance from tip of rod to target.
+        """
+        dist = self.pos_f[-1] - self.target_pos
+        if dist < 0:
+            print("haven't reached")
+        if dist > 0:
+            print("overshot")
+        return dist
