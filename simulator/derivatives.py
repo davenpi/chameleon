@@ -8,8 +8,8 @@ def time_derivative(
     y_curr: np.ndarray, y_prev: np.ndarray, delta_t: float
 ) -> np.ndarray:
     """
-    Compute the time derivative of u. 
-    
+    Compute the time derivative of u.
+
     Maha mentioned using Backwards Euler but I am not really sure how to do
     that and my current approach may be too simple.
 
@@ -21,12 +21,12 @@ def time_derivative(
         Y value of each element at previous time step.
     delta_t : np.ndarray
         Time step size.
-    
+
     Returns
     -------
     dy_dt : np.ndarray
-        Derivative of y respect to time. 
-    
+        Derivative of y respect to time.
+
     """
     dy_dt = (y_curr - y_prev) / delta_t
     return dy_dt
@@ -35,7 +35,7 @@ def time_derivative(
 def second_space_derivative(y: np.ndarray, x: np.ndarray) -> np.ndarray:
     """
     Compute second spatial derivative of y with respect to x.
-    
+
     We first create a spline of y and then use the built in scipy method to
     evaluate it's second derivative. We then select the derivative at points we
     have specified. I don't see any easy built in numpy methods to do this but
@@ -49,7 +49,7 @@ def second_space_derivative(y: np.ndarray, x: np.ndarray) -> np.ndarray:
         Dependent variable which depends on x.
     x : np.ndarray
         Independent variable.
-    
+
     Returns
     -------
     deriv : np.ndarray
@@ -75,7 +75,7 @@ def first_space_deriv(y: np.ndarray, x: np.ndarray) -> np.ndarray:
         Specificed active torque at each element of the rod.
     x : np.ndarray
         Current x position of elements along the rod.
-    
+
     Returns
     -------
     deriv : np.ndarray

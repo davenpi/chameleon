@@ -1,6 +1,5 @@
 """
-This script implements the forward simulation of the dynamical equation
-of motion for the chameleon system.
+This script implements the Chameleon system.
 """
 import numpy as np
 import derivatives as d
@@ -36,7 +35,7 @@ class Chameleon:
     def update_disp(self, active_stress: np.ndarray):
         """
         Update the displacement using the dynamical equation of motion.
-        
+
         Our equation of motion is E*d^2u/dx^2 + d(sigma_a)/dx = alpha * du/dt
         In general we know that u(t) = u(t-1) + delta_t * du/dt so we use the
         equation of motion laid out above to give an update rule for u.
@@ -49,7 +48,7 @@ class Chameleon:
         point on the left end of the rod is stationary so we manually set it's
         displacement to zero (that may not be correct and is something I will
         ask about).
-        
+
         Parameters
         ----------
         active_stress : np.ndarray
@@ -71,7 +70,7 @@ class Chameleon:
     def update_pos(self):
         """
         Update the final position of an element
-        
+
         Since displacement refers to global displacement we need to use the
         initial position of the rod plus it's overall displacement to compute
         it's final position i.e. u = x_f - x_0 => x_f = u + x_0. Since the left
@@ -123,6 +122,9 @@ class Chameleon:
             T = self.n_steps
         for i in range(T):
             self.step(active_stress)
+
+    def watch_history(self):
+        pass
 
     def check_target_dist(self):
         """
