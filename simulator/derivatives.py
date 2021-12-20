@@ -1,13 +1,11 @@
-"""
-This script holds all of the derivative computations that must be done for the
-simulator.
-"""
+"""This script holds all of the derivative functions for the simulator."""
+
 import numpy as np
 from scipy.interpolate import UnivariateSpline
 
 
-def disp_time_derivative(
-    disp_curr: np.ndarray, disp_prev: np.ndarray, delta_t: float
+def time_derivative(
+    y_curr: np.ndarray, y_prev: np.ndarray, delta_t: float
 ) -> np.ndarray:
     """
     Compute the time derivative of u. 
@@ -17,63 +15,63 @@ def disp_time_derivative(
 
     Parameters
     ----------
-    disp_new : np.ndarray
-        Current displacement of each element.
-    disp_prev : np.ndarray
-        Displacement of each element at previous time step.
+    y_curr : np.ndarray
+        Current y value at each element.
+    y_prev : np.ndarray
+        Y value of each element at previous time step.
     delta_t : np.ndarray
-        TIme step size.
+        Time step size.
     
     Returns
     -------
-    du_dt : np.ndarray
-        Derivative of displacement with respect to time. 
+    dy_dt : np.ndarray
+        Derivative of y respect to time. 
     
     """
-    du_dt = (disp_curr - disp_prev) / delta_t
-    return du_dt
+    dy_dt = (y_curr - y_prev) / delta_t
+    return dy_dt
 
 
-def u_second_space_derivative(disp: np.ndarray, pos: np.ndarray) -> np.ndarray:
+def second_space_derivative(y: np.ndarray, x: np.ndarray) -> np.ndarray:
     """
-    Compute second spatial derivative of dipslacement with respect to position.
+    Compute second spatial derivative of y with respect to x.
     
-    We first create a spline of the displacement and then use the built in 
-    scipy method to evaluate it's second derivative. We then select the
-    derivative at points we have specified. Don't see any easy built in 
-    functions built to handle this but the probably exist. I know I can use
-    finite difference methods to compute derivatives but handling the boundary
-    seems a little annoying.
+    We first create a spline of y and then use the built in scipy method to
+    evaluate it's second derivative. We then select the derivative at points we
+    have specified. I don't see any easy built in numpy methods to do this but
+    they probably exist. I know I could use a finite difference method to
+    compute derivatives but I don't know how to handle the boundary and the
+    scipy method is likely faster.
 
     Parameters
     ----------
-    disp : np.ndarray
-        Current displacement of elements.
-    pos : np.ndarray
-        Current position of elements.
+    y : np.ndarray
+        Dependent variable which depends on x.
+    x : np.ndarray
+        Independent variable.
     
     Returns
     -------
     deriv : np.ndarray
-        Value of second derivative of displacement at input positions.
+        Value of second derivative at input positions.
     """
-    spline = UnivariateSpline(pos, disp)
-    deriv = spline.derivative(n=2)(pos)
+    spline = UnivariateSpline(x, y)
+    deriv = spline.derivative(n=2)(x)
     return deriv
 
 
-def active_torque_deriv(torque: np.ndarray, pos: np.ndarray) -> np.ndarray:
+def first_space_deriv(y: np.ndarray, x: np.ndarray) -> np.ndarray:
     """
-    Compute derivative of the active torque. 
+    Compute derivative of y with respect to x.
 
-    We first create a spline of the torque over the data and then use a built
-    in scipy method to compute the derivative. We also have the option of
-    working directly with the data and computing derivatives using numpy but
-    we want to be consistent with how we compute second derivatives.
+    We first create a spline of y over x and then use a built in scipy method
+    to compute the derivative. We also have the option of working directly with
+    the data and computing derivatives using numpy but we want to be consistent
+    with how we compute second derivatives.
 
     Parameters
     ----------
-    torque : np.ndarray
+    y : np.ndarray
         Specificed active torque at each element of the rod.
     x : np.ndarray
         Current x position of elements along the rod.
@@ -83,7 +81,7 @@ def active_torque_deriv(torque: np.ndarray, pos: np.ndarray) -> np.ndarray:
     deriv : np.ndarray
         Derivative of torque with respect to position.
     """
-    spline = UnivariateSpline(pos, torque)
-    deriv = spline.derivative(n=1)(pos)
-    # deriv = np.gradient(torque, varargs=pos)
+    spline = UnivariateSpline(x, y)
+    deriv = spline.derivative(n=1)(x)
+    # deriv = np.gradient(y, varargs=x)
     return deriv
