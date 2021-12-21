@@ -30,7 +30,7 @@ class Chameleon:
         self.dt = dt
         self.final_time = final_time
         self.n_steps = int(self.final_time / self.dt)
-        self.position_history = deque([], maxlen=self.n_steps)
+        self.position_history = deque([], maxlen=10_000)  # fix this
 
     def update_disp(self, active_stress: np.ndarray):
         """
@@ -46,8 +46,10 @@ class Chameleon:
         is equal to du/dt, we update u using the computed spatial derivatives
         times the appropriate constants. In the end we need to make sure the
         point on the left end of the rod is stationary so we manually set it's
-        displacement to zero (that may not be correct and is something I will
-        ask about).
+        displacement to zero and we need to make sure that Edu/dx=-singma_a at
+        the right end. I am using a trick described
+        http://hplgit.github.io/prog4comp/doc/pub/p4c-sphinx-Python/._pylight006.html
+        to ensure that the derivative boundary condition is satisfied.
 
         Parameters
         ----------
@@ -60,10 +62,22 @@ class Chameleon:
         external_stress = (1 / self.alpha) * d.first_space_deriv(
             active_stress, self.pos_f
         )
+        dx = self.pos_f[-1] - self.pos_f[-2]
+        update = (self.dt / self.alpha) * (
+            active_stress[-1]
+            + self.E
+            * (
+                2 * self.disp_current[-2]
+                - 2 * self.disp_current[-1]
+                - (2 * dx * active_stress[-1]) / (self.E)
+            )
+            / (dx ** 2)
+        )
+        last_element_disp = self.disp_current[-1] + update
         new_disp = self.disp_current + self.dt * (internal_stress + external_stress)
-        # should set initial displacement to 0 right? just to satisfy left BC
-        # and be sure that I have the correct forces computed.
+        # satisfying boundary conditions
         new_disp[0] = 0
+        new_disp[-1] = last_element_disp
         self.disp_previous = self.disp_current
         self.disp_current = new_disp
 
