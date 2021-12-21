@@ -81,7 +81,7 @@ class Chameleon:
         new_disp[0] = 0
         new_disp[-1] = (
             last_element_disp + 0.0001
-        )  # extra 0.0001 is fudge factor to satisfy BC
+        )  # extra 0.0001 is fudge factor to satisfy BC and have x_n > x_(n-1)
         self.disp_previous = self.disp_current
         self.disp_current = new_disp
 
