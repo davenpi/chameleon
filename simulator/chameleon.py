@@ -63,21 +63,25 @@ class Chameleon:
             active_stress, self.pos_f
         )
         dx = self.pos_f[-1] - self.pos_f[-2]
-        update = (self.dt / self.alpha) * (
-            active_stress[-1]
-            + self.E
-            * (
-                2 * self.disp_current[-2]
-                - 2 * self.disp_current[-1]
-                - (2 * dx * active_stress[-1]) / (self.E)
-            )
-            / (dx ** 2)
-        )
-        last_element_disp = self.disp_current[-1] + update
+        # update = (self.dt / self.alpha) * (
+        #     active_stress[-1]
+        #     + self.E
+        #     * (
+        #         2 * self.disp_current[-2]
+        #         - 2 * self.disp_current[-1]
+        #         - (2 * dx * active_stress[-1]) / (self.E)
+        #     )
+        #     / (dx ** 2)
+        # )
+        # first order error method
+        # last_element_disp = self.disp_current[-1] + update
         new_disp = self.disp_current + self.dt * (internal_stress + external_stress)
+        last_element_disp = (-active_stress[-1] * dx) / (self.E) + new_disp[-2]
         # satisfying boundary conditions
         new_disp[0] = 0
-        new_disp[-1] = last_element_disp
+        new_disp[-1] = (
+            last_element_disp + 0.0001
+        )  # extra 0.0001 is fudge factor to satisfy BC
         self.disp_previous = self.disp_current
         self.disp_current = new_disp
 
