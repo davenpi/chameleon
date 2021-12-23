@@ -53,9 +53,9 @@ def first_space_deriv(y: np.ndarray, x: np.ndarray) -> np.ndarray:
     deriv : np.ndarray
         Derivative of torque with respect to position.
     """
-    spline = UnivariateSpline(x, y)
-    deriv = spline.derivative(n=1)(x)
-    # deriv = np.gradient(y, varargs=x)
+    # spline = UnivariateSpline(x, y)
+    # deriv = spline.derivative(n=1)(x)
+    deriv = np.gradient(y, x, edge_order=2)
     return deriv
 
 
@@ -82,6 +82,8 @@ def second_space_derivative(y: np.ndarray, x: np.ndarray) -> np.ndarray:
     deriv : np.ndarray
         Value of second derivative at input positions.
     """
-    spline = UnivariateSpline(x, y)
-    deriv = spline.derivative(n=2)(x)
-    return deriv
+    # spline = UnivariateSpline(x, y)
+    # deriv = spline.derivative(n=2)(x)
+    first_deriv = first_space_deriv(y, x)
+    second_deriv = np.gradient(first_deriv, x, edge_order=2)
+    return second_deriv

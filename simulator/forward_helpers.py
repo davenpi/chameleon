@@ -128,4 +128,9 @@ def forward_simulate(chameleon, active_stress: np.ndarray, **sim_steps):
     else:
         T = chameleon.n_steps
     for i in range(T):
-        one_step(chameleon, active_stress)
+        diffs = np.diff(chameleon.pos_f)
+        elements_increasing = np.all(diffs > 0)
+        if elements_increasing:
+            one_step(chameleon, active_stress)
+        else:
+            raise ValueError("The rod elements have become out of order")
