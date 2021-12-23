@@ -38,12 +38,16 @@ class Chameleon(gym.Env):
         self.n_steps = int(self.final_time / self.dt)
         self.position_history = deque([], maxlen=self.n_steps)
         self.position_history.append(self.pos_f)
+        self.displacement_history = deque([], maxlen=self.n_steps)
+        self.displacement_history.append(self.pos_f - self.pos_0)
         # coefficients in a + bx + cx^2
         self.action_space = gym.spaces.Box(low=0, high=1, shape=(3,))
         # observation space is just going to consist of tip of tongue
         self.observation_space = gym.spaces.Box(low=0, high=100, shape=(1,))
 
-    def step(self, action: np.ndarray, **sim_steps) -> Tuple[float, float, bool, dict]:
+    def step(
+        self, action: np.ndarray, **sim_steps
+    ) -> Tuple[np.ndarray, float, bool, dict]:
         """
         Move the simulation forward one step in time by upddating the position
         of each element.
@@ -78,24 +82,35 @@ class Chameleon(gym.Env):
         linear = action[1] * self.pos_f
         quadratic = action[2] * self.pos_f ** 2
         active_stress = constant + linear + quadratic
+        print(action)
+        print(active_stress)
         done = False
-        try:
-            fh.forward_simulate(self, active_stress, sim_steps=steps)
-            state = self.pos_f[-1]
-            # get negative reward for distance and one negative reward for time
-            reward = -(np.abs(state - self.target_pos)) - 1
-            if state == self.target_pos:
-                done = True
-        except:
-            print("Simulation messed up somewhere!")
-            reward = -1000
+        # try:
+        fh.forward_simulate(self, active_stress, sim_steps=steps)
+        state = np.array([self.pos_f[-1]], dtype=np.float32)
+        # get negative reward for distance and one negative reward for time
+        reward = -np.abs(state - self.target_pos).item() - 1
+        if state.item() == self.target_pos:
             done = True
-            state = np.NaN
+            # negative reward for large velocity at the end. want to reach
+            # target and be slowing down or nearly stopped
+            reward -= (
+                self.position_history[-1][-1] - self.position_history[-2][-1]
+            ) / self.dt
+            self.reset()
+        # except:
+        #     print("Simulation messed up somewhere!")
+        #     reward = -1000.0
+        #     done = True
+        #     state = np.array([self.pos_f[-1]])
+        #     self.reset()
         return state, reward, done, {}
 
     def reset(self):
         self.position_history.clear()
         self.pos_f = self.pos_0
+        state = np.array([self.pos_f[-1]], dtype=np.float32)
+        return state
 
     def render(self):
         pass

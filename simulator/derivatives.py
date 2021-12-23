@@ -32,6 +32,33 @@ def time_derivative(
     return dy_dt
 
 
+def first_space_deriv(y: np.ndarray, x: np.ndarray) -> np.ndarray:
+    """
+    Compute derivative of y with respect to x.
+
+    We first create a spline of y over x and then use a built in scipy method
+    to compute the derivative. We also have the option of working directly with
+    the data and computing derivatives using numpy but we want to be consistent
+    with how we compute second derivatives.
+
+    Parameters
+    ----------
+    y : np.ndarray
+        Specificed active torque at each element of the rod.
+    x : np.ndarray
+        Current x position of elements along the rod.
+
+    Returns
+    -------
+    deriv : np.ndarray
+        Derivative of torque with respect to position.
+    """
+    spline = UnivariateSpline(x, y)
+    deriv = spline.derivative(n=1)(x)
+    # deriv = np.gradient(y, varargs=x)
+    return deriv
+
+
 def second_space_derivative(y: np.ndarray, x: np.ndarray) -> np.ndarray:
     """
     Compute second spatial derivative of y with respect to x.
@@ -57,31 +84,4 @@ def second_space_derivative(y: np.ndarray, x: np.ndarray) -> np.ndarray:
     """
     spline = UnivariateSpline(x, y)
     deriv = spline.derivative(n=2)(x)
-    return deriv
-
-
-def first_space_deriv(y: np.ndarray, x: np.ndarray) -> np.ndarray:
-    """
-    Compute derivative of y with respect to x.
-
-    We first create a spline of y over x and then use a built in scipy method
-    to compute the derivative. We also have the option of working directly with
-    the data and computing derivatives using numpy but we want to be consistent
-    with how we compute second derivatives.
-
-    Parameters
-    ----------
-    y : np.ndarray
-        Specificed active torque at each element of the rod.
-    x : np.ndarray
-        Current x position of elements along the rod.
-
-    Returns
-    -------
-    deriv : np.ndarray
-        Derivative of torque with respect to position.
-    """
-    spline = UnivariateSpline(x, y)
-    deriv = spline.derivative(n=1)(x)
-    # deriv = np.gradient(y, varargs=x)
     return deriv
