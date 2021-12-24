@@ -57,22 +57,21 @@ def update_disp(chameleon, active_stress: np.ndarray):
         active_stress, chameleon.pos_f
     )
     dx = chameleon.pos_f[-1] - chameleon.pos_f[-2]
-    # update = (chameleon.dt / chameleon.alpha) * (
-    #     active_stress[-1]
-    #     + chameleon.E
-    #     * (
-    #         2 * chameleon.disp_current[-2]
-    #         - 2 * chameleon.disp_current[-1]
-    #         - (2 * dx * active_stress[-1]) / (chameleon.E)
-    #     )
-    #     / (dx ** 2)
-    # )
-    # first order error method
-    # last_element_disp = chameleon.disp_current[-1] + update
+    update = (chameleon.dt / chameleon.alpha) * (
+        active_stress[-1]
+        + chameleon.E
+        * (
+            2 * chameleon.disp_current[-2]
+            - 2 * chameleon.disp_current[-1]
+            - (2 * dx * active_stress[-1]) / (chameleon.E)
+        )
+        / (dx ** 2)
+    )
+    last_element_disp = chameleon.disp_current[-1] + update
     new_disp = chameleon.disp_current + chameleon.dt * (
         internal_stress + external_stress
     )
-    last_element_disp = (-active_stress[-1] * dx) / (chameleon.E) + new_disp[-2]
+    # last_element_disp = (-active_stress[-1] * dx) / (chameleon.E) + new_disp[-2]
     # satisfying boundary conditions
     new_disp[0] = 0
     new_disp[-1] = (
