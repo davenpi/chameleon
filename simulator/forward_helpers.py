@@ -50,10 +50,11 @@ def update_disp(chameleon, active_stress: np.ndarray):
     active_stress : np.ndarray
         Externally applied stress.
     """
-    internal_stress = (chameleon.E / chameleon.alpha) * d.second_space_derivative(
+
+    internal_term = (chameleon.E / chameleon.alpha) * d.second_space_derivative(
         chameleon.disp_current, chameleon.pos_f
     )
-    external_stress = (1 / chameleon.alpha) * d.first_space_deriv(
+    external_term = (1 / chameleon.alpha) * d.first_space_deriv(
         active_stress, chameleon.pos_f
     )
     dx = chameleon.pos_f[-1] - chameleon.pos_f[-2]
@@ -68,17 +69,14 @@ def update_disp(chameleon, active_stress: np.ndarray):
         / (dx ** 2)
     )
     last_element_disp = chameleon.disp_current[-1] + update
-    new_disp = chameleon.disp_current + chameleon.dt * (
-        internal_stress + external_stress
-    )
+    new_disp = chameleon.disp_current + chameleon.dt * (internal_term + external_term)
     # last_element_disp = (-active_stress[-1] * dx) / (chameleon.E) + new_disp[-2]
     # satisfying boundary conditions
     new_disp[0] = 0
-    new_disp[-1] = (
-        last_element_disp + 1e-9
-    )  # extra 1e-9 is fudge factor to satisfy BC and have x_n > x_(n-1)
+    new_disp[-1] = last_element_disp
     chameleon.disp_previous = chameleon.disp_current
     chameleon.disp_current = new_disp
+    chameleon.active_stress_history.append(active_stress)
 
 
 def one_step(chameleon, active_stress: np.ndarray):

@@ -18,7 +18,7 @@ class Chameleon(gym.Env):
         E: float = 1,
         alpha: float = 1,
         dt: float = 1e-3,  # this as an attribute for the chameleon is questionable
-        final_time: float = 1,  # if i have a Chameleon does it really make
+        final_time: float = 10,  # if i have a Chameleon does it really make
         # sense to give it a final time attribute? not really. using it now
         # to compute self.n_steps which DOES get used in forward helpers.
         # will refactor.
@@ -40,6 +40,8 @@ class Chameleon(gym.Env):
         self.position_history.append(self.pos_f)
         self.displacement_history = deque([], maxlen=self.n_steps)
         self.displacement_history.append(self.pos_f - self.pos_0)
+        self.active_stress_history = deque([], maxlen=self.n_steps)
+        self.active_stress_history.append(np.zeros(self.n_elems))
         # coefficients in a + bx + cx^2
         self.action_space = gym.spaces.Box(low=0, high=1, shape=(3,))
         # observation space is just going to consist of tip of tongue

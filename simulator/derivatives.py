@@ -10,8 +10,8 @@ def time_derivative(
     """
     Compute the time derivative of u.
 
-    Maha mentioned using Backwards Euler but I am not really sure how to do
-    that and my current approach may be too simple.
+    Compute time derivative by looking at difference between current and
+    previous values of variable and dividing by the time step.
 
     Parameters
     ----------
@@ -36,10 +36,8 @@ def first_space_deriv(y: np.ndarray, x: np.ndarray) -> np.ndarray:
     """
     Compute derivative of y with respect to x.
 
-    We first create a spline of y over x and then use a built in scipy method
-    to compute the derivative. We also have the option of working directly with
-    the data and computing derivatives using numpy but we want to be consistent
-    with how we compute second derivatives.
+    Using built in numpy method to compute gradient. Using a second order
+    method to compute derivatives at the boundary.
 
     Parameters
     ----------
@@ -63,12 +61,8 @@ def second_space_derivative(y: np.ndarray, x: np.ndarray) -> np.ndarray:
     """
     Compute second spatial derivative of y with respect to x.
 
-    We first create a spline of y and then use the built in scipy method to
-    evaluate it's second derivative. We then select the derivative at points we
-    have specified. I don't see any easy built in numpy methods to do this but
-    they probably exist. I know I could use a finite difference method to
-    compute derivatives but I don't know how to handle the boundary and the
-    scipy method is likely faster.
+    Using numpy gradient twice to compute second derivative. Using a second
+    order method to compute derivative at boundary.
 
     Parameters
     ----------
