@@ -73,7 +73,7 @@ def update_disp(chameleon, active_stress: np.ndarray):
     last_element_disp = (-active_stress[-1] * dx) / (chameleon.E) + new_disp[-2]
     # satisfying boundary conditions
     new_disp[0] = 0
-    # new_disp[-1] = last_element_disp
+    new_disp[-1] = last_element_disp
     chameleon.disp_previous = chameleon.disp_current
     chameleon.disp_current = new_disp
     chameleon.active_stress_history.append(active_stress)
