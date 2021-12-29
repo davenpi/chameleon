@@ -50,31 +50,43 @@ def update_disp(chameleon, active_stress: np.ndarray):
     active_stress : np.ndarray
         Externally applied stress.
     """
+    if chameleon.with_grad:  # use eqn where drag has gradient on it.
+        internal_term = (chameleon.E / chameleon.alpha) * d.first_space_deriv(
+            chameleon.disp_current, chameleon.pos_0
+        )
+        external_term = (1 / chameleon.alpha) * active_stress
+        new_disp = chameleon.disp_current + chameleon.dt * (
+            internal_term + external_term
+        )
+    else:
+        internal_term = (chameleon.E / chameleon.alpha) * d.second_space_derivative(
+            chameleon.disp_current, chameleon.pos_0
+        )
+        external_term = (1 / chameleon.alpha) * d.first_space_deriv(
+            active_stress, chameleon.pos_0
+        )
 
-    internal_term = (chameleon.E / chameleon.alpha) * d.second_space_derivative(
-        chameleon.disp_current, chameleon.pos_0
-    )
-    external_term = (1 / chameleon.alpha) * d.first_space_deriv(
-        active_stress, chameleon.pos_0
-    )
-    # dx = chameleon.pos_f[-1] - chameleon.pos_f[-2]
-    dx = chameleon.pos_0[-1] - chameleon.pos_0[-2]
-    # update = (chameleon.dt / chameleon.alpha) * (
-    #     active_stress[-1]
-    #     + chameleon.E
-    #     * (
-    #         2 * chameleon.disp_current[-2]
-    #         - 2 * chameleon.disp_current[-1]
-    #         - (2 * dx * active_stress[-1]) / (chameleon.E)
-    #     )
-    #     / (dx ** 2)
-    # )
-    # last_element_disp = chameleon.disp_current[-1] + update
-    new_disp = chameleon.disp_current + chameleon.dt * (internal_term + external_term)
-    last_element_disp = (-active_stress[-1] * dx) / (chameleon.E) + new_disp[-2]
-    # satisfying boundary conditions
+        new_disp = chameleon.disp_current + chameleon.dt * (
+            internal_term + external_term
+        )
+        # satisfying derivative bc.
+        dx = chameleon.pos_0[-1] - chameleon.pos_0[-2]
+        ## THIS LOOKS WRONG. SHOULD PROBABLY USE PREVIOUS DISPLACEMENT
+        ## USE FIRST ORDER METHOD FOR NOW BUT COME BACK IF IT WORKS.
+        # update = (chameleon.dt / chameleon.alpha) * (
+        #     active_stress[-1]
+        #     + chameleon.E
+        #     * (
+        #         2 * chameleon.disp_current[-2]
+        #         - 2 * chameleon.disp_current[-1]
+        #         - (2 * dx * active_stress[-1]) / (chameleon.E)
+        #     )
+        #     / (dx ** 2)
+        # )
+        # last_element_disp = chameleon.disp_current[-1] + update
+        last_element_disp = (-active_stress[-1] * dx) / (chameleon.E) + new_disp[-2]
+        new_disp[-1] = last_element_disp
     new_disp[0] = 0
-    new_disp[-1] = last_element_disp
     chameleon.disp_previous = chameleon.disp_current
     chameleon.disp_current = new_disp
     chameleon.active_stress_history.append(active_stress)

@@ -22,6 +22,7 @@ class Chameleon(gym.Env):
         # sense to give it a final time attribute? not really. using it now
         # to compute self.n_steps which DOES get used in forward helpers.
         # will refactor.
+        with_grad: bool = True,
     ):
         super(Chameleon, self).__init__()
         self.target_pos = target_pos
@@ -35,6 +36,7 @@ class Chameleon(gym.Env):
         self.disp_previous = 0  # not really used anywhere right now.
         self.dt = dt
         self.final_time = final_time
+        self.with_grad = with_grad
         self.n_steps = int(self.final_time / self.dt)
         self.position_history = deque([], maxlen=self.n_steps)
         self.position_history.append(self.pos_f)
