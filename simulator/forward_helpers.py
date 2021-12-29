@@ -52,12 +52,13 @@ def update_disp(chameleon, active_stress: np.ndarray):
     """
 
     internal_term = (chameleon.E / chameleon.alpha) * d.second_space_derivative(
-        chameleon.disp_current, chameleon.pos_f
+        chameleon.disp_current, chameleon.pos_0
     )
     external_term = (1 / chameleon.alpha) * d.first_space_deriv(
-        active_stress, chameleon.pos_f
+        active_stress, chameleon.pos_0
     )
-    dx = chameleon.pos_f[-1] - chameleon.pos_f[-2]
+    # dx = chameleon.pos_f[-1] - chameleon.pos_f[-2]
+    dx = chameleon.pos_0[-1] - chameleon.pos_0[-2]
     # update = (chameleon.dt / chameleon.alpha) * (
     #     active_stress[-1]
     #     + chameleon.E
