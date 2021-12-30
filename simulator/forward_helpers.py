@@ -107,8 +107,7 @@ def one_step(chameleon, active_stress: np.ndarray):
     update_disp(chameleon, active_stress)
     update_pos(chameleon)
     chameleon.position_history.append(chameleon.pos_f)
-    disp = chameleon.pos_f - chameleon.pos_0
-    chameleon.displacement_history.append(disp)
+    chameleon.displacement_history.append(chameleon.disp_current)
 
 
 def forward_simulate(chameleon, active_stress: np.ndarray, **sim_steps):

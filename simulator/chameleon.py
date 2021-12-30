@@ -12,42 +12,35 @@ import forward_helpers as fh
 class Chameleon(gym.Env):
     def __init__(
         self,
+        init_pos: np.ndarray = np.linspace(0, 1, 50),  # hardcoding for now
+        current_disp: np.ndarray = np.zeros(50),
         target_pos: float = 2,
-        n_elems: int = 10,
-        length: float = 1,
         E: float = 1,
         alpha: float = 1,
         dt: float = 1e-3,  # this as an attribute for the chameleon is questionable
-        final_time: float = 10,  # if i have a Chameleon does it really make
-        # sense to give it a final time attribute? not really. using it now
-        # to compute self.n_steps which DOES get used in forward helpers.
-        # will refactor.
         with_grad: bool = True,
     ):
         super(Chameleon, self).__init__()
         self.target_pos = target_pos
-        self.n_elems = n_elems
-        self.length = length
+        self.n_elems = np.size(init_pos)
         self.E = E
         self.alpha = alpha
-        self.pos_0 = np.linspace(0, length, n_elems)
-        self.pos_f = np.linspace(0, length, n_elems)
-        self.disp_current = self.pos_f - self.pos_0
-        self.disp_previous = 0  # not really used anywhere right now.
+        self.pos_0 = init_pos
+        self.pos_f = self.pos_0
+        self.disp_current = current_disp  # can be different than pos_f - pos_0
         self.dt = dt
-        self.final_time = final_time
         self.with_grad = with_grad
-        self.n_steps = int(self.final_time / self.dt)
+        self.n_steps = 1000
         self.position_history = deque([], maxlen=self.n_steps)
         self.position_history.append(self.pos_f)
         self.displacement_history = deque([], maxlen=self.n_steps)
-        self.displacement_history.append(self.pos_f - self.pos_0)
+        self.displacement_history.append(self.disp_current)
         self.active_stress_history = deque([], maxlen=self.n_steps)
         self.active_stress_history.append(np.zeros(self.n_elems))
         # coefficients in a + bx + cx^2
         self.action_space = gym.spaces.Box(low=0, high=1, shape=(3,))
         # observation space is just going to consist of tip of tongue
-        self.observation_space = gym.spaces.Box(low=0, high=100, shape=(1,))
+        self.observation_space = gym.spaces.Box(low=0, high=10, shape=(1,))
 
     def step(
         self, action: np.ndarray, **sim_steps
