@@ -1,35 +1,33 @@
 """This script holds all of the derivative functions for the simulator."""
 
 import numpy as np
-from scipy.interpolate import UnivariateSpline
 
+# def time_derivative(
+#     y_curr: np.ndarray, y_prev: np.ndarray, delta_t: float
+# ) -> np.ndarray:
+#     """
+#     Compute the time derivative of u.
 
-def time_derivative(
-    y_curr: np.ndarray, y_prev: np.ndarray, delta_t: float
-) -> np.ndarray:
-    """
-    Compute the time derivative of u.
+#     Compute time derivative by looking at difference between current and
+#     previous values of variable and dividing by the time step.
 
-    Compute time derivative by looking at difference between current and
-    previous values of variable and dividing by the time step.
+#     Parameters
+#     ----------
+#     y_curr : np.ndarray
+#         Current y value at each element.
+#     y_prev : np.ndarray
+#         Y value of each element at previous time step.
+#     delta_t : np.ndarray
+#         Time step size.
 
-    Parameters
-    ----------
-    y_curr : np.ndarray
-        Current y value at each element.
-    y_prev : np.ndarray
-        Y value of each element at previous time step.
-    delta_t : np.ndarray
-        Time step size.
+#     Returns
+#     -------
+#     dy_dt : np.ndarray
+#         Derivative of y respect to time.
 
-    Returns
-    -------
-    dy_dt : np.ndarray
-        Derivative of y respect to time.
-
-    """
-    dy_dt = (y_curr - y_prev) / delta_t
-    return dy_dt
+#     """
+#     dy_dt = (y_curr - y_prev) / delta_t
+#     return dy_dt
 
 
 def first_space_deriv(y: np.ndarray, x: np.ndarray) -> np.ndarray:

@@ -44,7 +44,7 @@ class Chameleon(gym.Env):
         # observation space is just going to consist of tip of tongue
         self.observation_space = gym.spaces.Box(low=0, high=10, shape=(1,))
         self.step_counter = 0
-        self.ep_length = 10
+        self.ep_length = 15
 
     def step(
         self,
@@ -83,7 +83,9 @@ class Chameleon(gym.Env):
             fh.forward_simulate(self, active_stress, sim_steps=1_000)
             state = np.array([self.pos_f[-1]], dtype=np.float32)
             close = np.isclose(state.item(), self.target_pos)
+            overshot = state.item() > self.target_pos
             self.step_counter += 1
+            overtime = self.step_counter > self.ep_length
         except:
             print(
                 "elements likely came out of order"
@@ -99,22 +101,23 @@ class Chameleon(gym.Env):
             print(f"Reached in {self.step_counter} steps! =)")
             reward -= (self.pos_f[-1] - self.position_history[-2][-1]) / self.dt
             self.reset()
-        elif (state.item() > self.target_pos) or (
-            self.step_counter > self.ep_length
-        ):  # fail for overshooting or taking too long
-            print("overshot target or took too long =(")
+        elif (overshot) or (overtime):  # fail for overshooting or taking too long
+            if overshot:
+                print("overshot target =(")
+            elif overtime:
+                print("took too long =(")
             done = True
             reward = -1000
             self.reset()
         else:  # get negative reward for distance and one negative reward for time
-            print("Trying to reach! =|")
+            # print("Trying to reach! =|")
             reward = -np.abs(state - self.target_pos).item() - 1
         return state, reward, done, {}
 
     def reset(self):
         self.step_counter = 0
         self.position_history.clear()
-        self.pos_0 = np.ndarray = np.linspace(0, 1, 50)
+        self.pos_0 = np.linspace(0, 1, 50)
         self.pos_f = self.pos_0
         self.position_history.append(self.pos_0)
         self.displacement_history.clear()
