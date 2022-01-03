@@ -86,32 +86,32 @@ class Chameleon(gym.Env):
             overshot = state.item() > self.target_pos
             self.step_counter += 1
             overtime = self.step_counter > self.ep_length
+            if close:
+                done = True
+                # negative reward for large velocity at the end. want to reach
+                # target and be slowing down or nearly stopped
+                print(f"Reached in {self.step_counter} steps! =)")
+                reward = -(self.pos_f[-1] - self.position_history[-2][-1]) / self.dt
+                state = self.reset()
+            elif (overshot) or (overtime):  # fail for overshooting or taking too long
+                if overshot:
+                    print("overshot target =(")
+                elif overtime:
+                    print("took too long =(")
+                done = True
+                reward = -1000
+                state = self.reset()
+            else:  # get negative reward for distance and one negative reward for time
+                # print("Trying to reach! =|")
+                reward = -np.abs(state - self.target_pos).item() - 1
         except:
             print(
                 "elements likely came out of order"
             )  # terrible feedback. be more specific and differentiate
             done = True
             reward = -1000
-            self.reset()
+            state = self.reset()
 
-        if close:
-            done = True
-            # negative reward for large velocity at the end. want to reach
-            # target and be slowing down or nearly stopped
-            print(f"Reached in {self.step_counter} steps! =)")
-            reward -= (self.pos_f[-1] - self.position_history[-2][-1]) / self.dt
-            self.reset()
-        elif (overshot) or (overtime):  # fail for overshooting or taking too long
-            if overshot:
-                print("overshot target =(")
-            elif overtime:
-                print("took too long =(")
-            done = True
-            reward = -1000
-            self.reset()
-        else:  # get negative reward for distance and one negative reward for time
-            # print("Trying to reach! =|")
-            reward = -np.abs(state - self.target_pos).item() - 1
         return state, reward, done, {}
 
     def reset(self):
