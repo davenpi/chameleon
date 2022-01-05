@@ -82,34 +82,33 @@ class Chameleon(gym.Env):
             fh.forward_simulate(self, active_stress, sim_steps=1_000)
             self.step_counter += 1
             state = np.array([self.pos_f[-1]], dtype=np.float32)
-            close = np.isclose(state.item(), self.target_pos, rtol=0.05)
-            overshot = state.item() > self.target_pos
+            close = np.isclose(state.item(), self.target_pos, rtol=0.1)
+            # overshot = state.item() > self.target_pos
             overtime = self.step_counter > self.ep_length
             if close:
                 done = True
                 # negative reward for large velocity at the end. want to reach
                 # target and be slowing down or nearly stopped
 
-                reward = (
-                    100
-                    - 10 * (self.pos_f[-1] - self.position_history[-2][-1]) / self.dt
-                )
+                reward = 100
+                #     - 10 * (self.pos_f[-1] - self.position_history[-2][-1]) / self.dt
+                # )
+                print(f"State is {state}")
                 print(f"Reached in {self.step_counter} steps! =) with reward: {reward}")
                 state = self.reset()
-            elif (overshot) or (overtime):  # fail for overshooting or taking too long
-                if overshot:
-                    print("overshot target =(")
-                elif overtime:
-                    print("took too long =(")
+            elif overtime:  # fail for taking too long
+                # if overshot:
+                #     print("overshot target =(")
+                print("took too long =(")
                 done = True
                 reward = -10
                 state = self.reset()
             else:  # get negative reward for distance and one negative reward for time
                 reward = -np.abs(state - self.target_pos).item() - 1
         except:
-            print(
-                "elements most likely out of order"
-            )  # terrible feedback. be more specific and differentiate
+            # print(
+            #     "elements most likely out of order"
+            # )  # terrible feedback. be more specific and differentiate
             done = True
             reward = -1000
             state = self.reset()
