@@ -80,9 +80,10 @@ class Chameleon(gym.Env):
         done = False
         try:
             fh.forward_simulate(self, active_stress, sim_steps=1_000)
+            self.position_history.append(self.pos_f)
             self.step_counter += 1
             state = np.array([self.pos_f[-1]], dtype=np.float32)
-            close = np.isclose(state.item(), self.target_pos, rtol=0.1)
+            close = np.isclose(state.item(), self.target_pos, rtol=0.01)
             # overshot = state.item() > self.target_pos
             overtime = self.step_counter > self.ep_length
             if close:
@@ -90,7 +91,7 @@ class Chameleon(gym.Env):
                 # negative reward for large velocity at the end. want to reach
                 # target and be slowing down or nearly stopped
 
-                reward = 100
+                reward = 0
                 #     - 10 * (self.pos_f[-1] - self.position_history[-2][-1]) / self.dt
                 # )
                 print(f"State is {state}")
@@ -99,12 +100,13 @@ class Chameleon(gym.Env):
             elif overtime:  # fail for taking too long
                 # if overshot:
                 #     print("overshot target =(")
-                print("took too long =(")
-                done = True
+                print(f"took too long ( : > ( )")
                 reward = -10
+                done = True
                 state = self.reset()
             else:  # get negative reward for distance and one negative reward for time
-                reward = -np.abs(state - self.target_pos).item() - 1
+                # reward = -np.abs(state - self.target_pos).item() - 1
+                reward = -1
         except:
             # print(
             #     "elements most likely out of order"
@@ -117,10 +119,10 @@ class Chameleon(gym.Env):
 
     def reset(self):
         self.step_counter = 0
-        self.position_history.clear()
+        # self.position_history.clear()
         self.pos_0 = np.linspace(0, self.length, self.n_elems)
         self.pos_f = self.pos_0
-        self.position_history.append(self.pos_0)
+        # self.position_history.append(self.pos_0)
         self.displacement_history.clear()
         self.disp_current = self.pos_f - self.pos_0
         self.displacement_history.append(self.disp_current)

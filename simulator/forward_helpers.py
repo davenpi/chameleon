@@ -106,7 +106,7 @@ def one_step(chameleon, active_stress: np.ndarray):
     """
     update_disp(chameleon, active_stress)
     update_pos(chameleon)
-    chameleon.position_history.append(chameleon.pos_f)
+    # chameleon.position_history.append(chameleon.pos_f)
     chameleon.displacement_history.append(chameleon.disp_current)
 
 
