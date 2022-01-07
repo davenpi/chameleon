@@ -89,7 +89,7 @@ def update_disp(chameleon, active_stress: np.ndarray):
     new_disp[0] = 0
     chameleon.disp_previous = chameleon.disp_current
     chameleon.disp_current = new_disp
-    chameleon.active_stress_history.append(active_stress)
+    # chameleon.active_stress_history.append(active_stress)
 
 
 def one_step(chameleon, active_stress: np.ndarray):

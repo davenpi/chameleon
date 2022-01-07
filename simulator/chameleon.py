@@ -38,12 +38,16 @@ class Chameleon(gym.Env):
         self.displacement_history.append(self.disp_current)
         self.active_stress_history = deque([], maxlen=self.n_steps)
         self.active_stress_history.append(np.zeros(self.n_elems))
+        # adding elastic stress history for inspection
+        self.elastic_stress_history = []
+        # adding ratio for comparison
+        self.stress_ratio_history = []
         # coefficients in a + bx + cx^2
         self.action_space = gym.spaces.Box(low=-1, high=1, shape=(3,))
         # observation space is just going to consist of tip of tongue
         self.observation_space = gym.spaces.Box(low=0, high=1, shape=(1,))
         self.step_counter = 0
-        self.ep_length = 15
+        self.ep_length = 20
 
     def step(
         self,
@@ -80,6 +84,11 @@ class Chameleon(gym.Env):
         done = False
         try:
             fh.forward_simulate(self, active_stress, sim_steps=1_000)
+            elastic_stress = self.E * np.gradient(self.pos_f, edge_order=2)
+            self.elastic_stress_history.append(elastic_stress)
+            self.active_stress_history.append(active_stress)
+            stress_ratio = (active_stress - elastic_stress) / active_stress
+            self.stress_ratio_history.append(stress_ratio)
             self.position_history.append(self.pos_f)
             self.step_counter += 1
             state = np.array([self.pos_f[-1]], dtype=np.float32)
