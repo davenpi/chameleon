@@ -39,8 +39,8 @@ class Chameleon(gym.Env):
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         const = action[0] * np.ones(self.n_elems)
-        linear = action[1] * self.u_current
-        quad = action[2] * self.u_current ** 2
+        linear = action[1] * self.pos
+        quad = action[2] * self.pos ** 2
         active_stress = const + linear + quad
 
         for i in range(1000):  # take 1000 steps per learning step
