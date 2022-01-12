@@ -19,23 +19,25 @@ class Chameleon(gym.Env):
         self.n_elems = n_elems
         self.target_pos = target_pos
         self.dt = dt
-        self.pos_init = np.linspace(0, 0.1, self.n_elems)
+        self.pos_init = np.linspace(0, 0.10, self.n_elems)
         self.pos = copy.deepcopy(self.pos_init)
         self.u_current = self.pos - self.pos_init
         self.observation_space = gym.spaces.Box(low=0, high=1, shape=(1,))
         self.action_space = gym.spaces.Box(low=-1, high=1, shape=(3,))
         self.learning_counter = 0
-        self.episode_length = 24
+        self.episode_length = 50
 
     def one_step(self, active_stress: np.ndarray) -> None:
-        u_gradient = np.gradient(
-            self.u_current, edge_order=2
-        )  # NEED TO TAKE DERIV WRT X_INIT otherwise unit spacing is used
+        diff = np.diff(self.pos_init)[0]
+        u_gradient = np.gradient(self.u_current, diff, edge_order=2)
+        u_gradient[-1] = active_stress[-1] / self.E  # Boundary condition
+        C_t = -self.E * u_gradient[0] - active_stress[0]
         update = self.dt * (
-            (self.E / self.alpha) * u_gradient + (1 / self.alpha) * active_stress
+            C_t / self.alpha
+            + (self.E / self.alpha) * u_gradient
+            + (1 / self.alpha) * active_stress
         )
         u_final = self.u_current + update
-        u_final[0] = self.u_current[0]
         self.u_current = copy.deepcopy(u_final)
         self.pos = self.pos_init + self.u_current
 
@@ -57,7 +59,7 @@ class Chameleon(gym.Env):
         else:
             state = np.array([self.pos[-1]], dtype=np.float32)
             overtime = self.learning_counter > self.episode_length
-            close = np.isclose(state.item(), self.target_pos, rtol=0.01)
+            close = np.isclose(state.item(), self.target_pos, rtol=0.05)
             if overtime:
                 state = self.reset()
                 done = True
