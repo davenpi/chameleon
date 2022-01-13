@@ -8,9 +8,10 @@ class Chameleon(gym.Env):
     def __init__(
         self,
         E: float,
-        alpha: float,
+        alpha: float = 1,
         n_elems: int = 50,
         dt: float = 1e-5,
+        init_length: float = 0.1,
         target_pos: float = 0.18,
     ) -> None:
         super(Chameleon, self).__init__()
@@ -19,11 +20,11 @@ class Chameleon(gym.Env):
         self.n_elems = n_elems
         self.target_pos = target_pos
         self.dt = dt
-        self.pos_init = np.linspace(0, 0.10, self.n_elems)
+        self.pos_init = np.linspace(0, init_length, self.n_elems)
         self.pos = copy.deepcopy(self.pos_init)
         self.u_current = self.pos - self.pos_init
         self.observation_space = gym.spaces.Box(low=0, high=1, shape=(1,))
-        self.action_space = gym.spaces.Box(low=-1, high=1, shape=(3,))
+        self.action_space = gym.spaces.Box(low=-1, high=1, shape=(1,))
         self.learning_counter = 0
         self.episode_length = 50
 
@@ -43,9 +44,9 @@ class Chameleon(gym.Env):
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         const = action[0] * np.ones(self.n_elems)
-        linear = action[1] * self.pos
-        quad = action[2] * self.pos ** 2
-        active_stress = const + linear + quad
+        # linear = action[1] * self.pos
+        # quad = action[2] * self.pos ** 2
+        active_stress = const  # + linear + quad
 
         for i in range(1000):  # take 1000 steps per learning step
             self.one_step(active_stress)
@@ -56,6 +57,7 @@ class Chameleon(gym.Env):
             state = self.reset()
             reward = -1000
             done = True
+            print("OOO")
         else:
             state = np.array([self.pos[-1]], dtype=np.float32)
             overtime = self.learning_counter > self.episode_length
