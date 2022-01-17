@@ -29,7 +29,7 @@ class Chameleon(gym.Env):
         self.active_stress_hist = deque([], maxlen=10)
         self.active_stress_hist.append(np.zeros(self.n_elems))
         self.observation_space = gym.spaces.Box(low=0, high=1, shape=(1,))
-        self.action_space = gym.spaces.Box(low=-1, high=1, shape=(3,))
+        self.action_space = gym.spaces.Box(low=-1, high=1, shape=(2,))
         self.learning_counter = 0
         self.episode_length = 25
 
@@ -56,10 +56,10 @@ class Chameleon(gym.Env):
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         const = action[0] * np.ones(self.n_elems)
         linear = action[1] * self.pos
-        quad = action[2] * self.pos ** 2
-        active_stress = const + linear + quad
+        # quad = action[2] * self.pos ** 2
+        active_stress = const + linear  # + quad
 
-        for i in range(10):  # take 10 steps per learning step
+        for i in range(1):  # take this many steps per learning step
             active_stress_prev = self.active_stress_hist[-1]
             self.one_step(active_stress, active_stress_prev)
             self.active_stress_hist.append(active_stress)
@@ -74,7 +74,7 @@ class Chameleon(gym.Env):
         else:
             state = np.array([self.pos[-1]], dtype=np.float32)
             overtime = self.learning_counter > self.episode_length
-            close = np.isclose(state.item(), self.target_pos, rtol=0.025)
+            close = np.isclose(state.item(), self.target_pos, rtol=0.05)
             if overtime:
                 state = self.reset()
                 done = True
@@ -87,6 +87,9 @@ class Chameleon(gym.Env):
                 reward = 0
             else:
                 reward = -1
+                reward -= np.abs(
+                    self.pos[-1] - self.target_pos
+                )  # added in position based reward
                 done = False
 
         info = {}
