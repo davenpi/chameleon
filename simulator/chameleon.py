@@ -9,7 +9,7 @@ import numpy as np
 class Chameleon(gym.Env):
     def __init__(
         self,
-        E: float,
+        E: float = 1.0,
         alpha: float = 1,
         n_elems: int = 50,
         dt: float = 1e-5,
@@ -36,6 +36,9 @@ class Chameleon(gym.Env):
         self.active_stress_hist.append(np.zeros(self.n_elems))
         self.winning_stress_hist = deque([], maxlen=self.episode_length + 1)
         ### ADD IN METHOD WHICH ENSURES TARGET POS IS WITHIN OBSERVATION SPACE
+        assert (
+            self.target_pos < self.observation_space.high.item()
+        ), "target outside observation space"
 
     def one_step(
         self, active_stress_curr: np.ndarray, active_stress_prev: np.ndarray
@@ -74,19 +77,21 @@ class Chameleon(gym.Env):
             state = self.reset()
             reward = -1000
             done = True
-            print("OOO")
+            # print("OOO")
         else:
             state = np.array([self.pos[-1]], dtype=np.float32)
-            out_of_bounds = state.item() > self.observation_space.high.item()
+            out_of_bounds = (
+                state.item() > self.original_target_pos * 1.15
+            )  # self.observation_space.high.item()
             overtime = self.learning_counter > self.episode_length
-            close = np.isclose(state.item(), self.target_pos, rtol=0.015)
+            close = np.isclose(state.item(), self.target_pos, rtol=0.05)
             if overtime:
-                print("OOT")
+                # print("OOT")
                 state = self.reset()
                 reward = -1000
                 done = True
             elif out_of_bounds:
-                print("OOB")
+                # print("OOB")
                 state = self.reset()
                 reward = -1000
                 done = True
@@ -101,9 +106,9 @@ class Chameleon(gym.Env):
                     reward = 1000
                     done = True
                 else:  # reward for reaching first target and update target position
-                    print(
-                        f"Reahced! In {self.learning_counter} steps to {state.item()}"
-                    )
+                    # print(
+                    #     f"Reahced! In {self.learning_counter} steps to {state.item()}"
+                    # )
                     self.target_pos = self.pos_init[-1]
                     reward = -1
                     done = False
