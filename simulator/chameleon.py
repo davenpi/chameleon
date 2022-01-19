@@ -29,7 +29,7 @@ class Chameleon(gym.Env):
         self.u_current = self.pos - self.pos_init
         self.observation_space = gym.spaces.Box(low=0, high=1, shape=(1,))
         self.action_space = gym.spaces.Box(low=-1, high=1, shape=(2,))
-        self.learning_counter = 0
+        self.learning_counter = 1  # 0
         self.episode_length = 10
         self.active_stress_hist = deque([], maxlen=self.episode_length + 1)
         self.active_stress_hist.append(np.zeros(self.n_elems))
@@ -95,9 +95,9 @@ class Chameleon(gym.Env):
                 done = True
             elif close:
                 if self.target_pos == self.pos_init[-1]:
-                    print(
-                        f"Returned! in {self.learning_counter} steps to {state.item()}"
-                    )
+                    # print(
+                    #     f"Returned! in {self.learning_counter} steps to {state.item()}"
+                    # )
                     self.winning_pos = self.pos  # kludge to get last position
                     self.winning_stress_hist = copy.copy(self.active_stress_hist)
                     reward = 1
@@ -124,7 +124,7 @@ class Chameleon(gym.Env):
         self.active_stress_hist.clear()
         self.active_stress_hist.append(np.zeros(self.n_elems))
         state = np.array([self.pos[-1]], dtype=np.float32)
-        self.learning_counter = 0
+        self.learning_counter = 1  # 0
         self.target_pos = self.original_target_pos
         # self.reward_history.append(copy.copy(self.ep_rew))
         self.ep_rew = 0
