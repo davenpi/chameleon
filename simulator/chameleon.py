@@ -15,6 +15,7 @@ class Chameleon(gym.Env):
         dt: float = 1e-5,
         init_length: float = 0.1,
         target_pos: float = 0.18,
+        rtol: float = 0.05,
     ) -> None:
         super(Chameleon, self).__init__()
         self.E = E
@@ -23,14 +24,15 @@ class Chameleon(gym.Env):
         self.target_pos = target_pos
         self.original_target_pos = target_pos
         self.dt = dt
+        self.rtol = rtol
         self.pos_init = np.linspace(0, init_length, self.n_elems)
         self.dx = self.pos_init[1] - self.pos_init[0]
         self.pos = copy.deepcopy(self.pos_init)
         self.u_current = self.pos - self.pos_init
         self.observation_space = gym.spaces.Box(low=0, high=1, shape=(1,))
         self.action_space = gym.spaces.Box(low=-1, high=1, shape=(2,))
-        self.learning_counter = 1  # 0
-        self.episode_length = 10
+        self.learning_counter = 0
+        self.episode_length = 9  # length 10 eps but start counting at zero
         self.active_stress_hist = deque([], maxlen=self.episode_length + 1)
         self.active_stress_hist.append(np.zeros(self.n_elems))
         self.winning_stress_hist = deque([], maxlen=self.episode_length + 1)
@@ -74,7 +76,7 @@ class Chameleon(gym.Env):
         self.learning_counter += 1
         diffs = np.diff(self.pos)
         if any(diffs < 0):
-            reward = -1000
+            reward = -100
             self.ep_rew += reward
             done = True
             state = self.reset()
@@ -82,7 +84,7 @@ class Chameleon(gym.Env):
             state = np.array([self.pos[-1]], dtype=np.float32)
             out_of_bounds = state.item() > self.observation_space.high.item()
             overtime = self.learning_counter > self.episode_length
-            close = np.isclose(state.item(), self.target_pos, rtol=0.05)
+            close = np.isclose(state.item(), self.target_pos, rtol=self.rtol)
             if overtime:
                 reward = -1
                 self.ep_rew += reward
@@ -106,7 +108,7 @@ class Chameleon(gym.Env):
                     done = True
                 else:  # reward for reaching first target and update target position
                     self.target_pos = self.pos_init[-1]
-                    reward = 0
+                    reward = -1
                     self.ep_rew += reward
                     done = False
             else:
@@ -124,7 +126,7 @@ class Chameleon(gym.Env):
         self.active_stress_hist.clear()
         self.active_stress_hist.append(np.zeros(self.n_elems))
         state = np.array([self.pos[-1]], dtype=np.float32)
-        self.learning_counter = 1  # 0
+        self.learning_counter = 0
         self.target_pos = self.original_target_pos
         # self.reward_history.append(copy.copy(self.ep_rew))
         self.ep_rew = 0
