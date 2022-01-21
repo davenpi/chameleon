@@ -65,10 +65,9 @@ class Chameleon(gym.Env):
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         const = action[0] * np.ones(self.n_elems)
-        # linear = action[1] * self.pos_init
-        active_stress = const  # + linear
+        active_stress = const
 
-        for i in range(1):  # take this many steps per learning step
+        for i in range(1):
             active_stress_prev = self.active_stress_hist[-1]
             self.one_step(active_stress, active_stress_prev)
             self.active_stress_hist.append(active_stress)
@@ -97,9 +96,6 @@ class Chameleon(gym.Env):
                 done = True
             elif close:
                 if self.target_pos == self.pos_init[-1]:
-                    # print(
-                    #     f"Returned! in {self.learning_counter} steps to {state.item()}"
-                    # )
                     self.winning_pos = self.pos  # kludge to get last position
                     self.winning_stress_hist = copy.copy(self.active_stress_hist)
                     reward = 1
@@ -120,7 +116,6 @@ class Chameleon(gym.Env):
         return state, reward, done, info
 
     def reset(self) -> np.ndarray:
-        # print(self.ep_rew)
         self.pos = copy.deepcopy(self.pos_init)
         self.u_current = self.pos - self.pos_init
         self.active_stress_hist.clear()
@@ -128,10 +123,8 @@ class Chameleon(gym.Env):
         state = np.array([self.pos[-1]], dtype=np.float32)
         self.learning_counter = 0
         self.target_pos = self.original_target_pos
-        # self.reward_history.append(copy.copy(self.ep_rew))
         self.ep_rew = 0
         self.episode_counter += 1
-        # print(self.ep_rew)
         return state
 
     def render():

@@ -1,12 +1,13 @@
+import os
+import math
 import argparse
-from stable_baselines3 import PPO, SAC
-from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.callbacks import (
-    EvalCallback,
-    BaseCallback,
-    StopTrainingOnRewardThreshold,
-)
+import numpy as np
+import matplotlib.pyplot as plt
 from chameleon import Chameleon
+from stable_baselines3 import PPO
+from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.callbacks import EvalCallback
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -25,9 +26,6 @@ parser.add_argument(
 )
 parser.add_argument("-E", type=float, help="Young's Modulus of tongue", default=1.0)
 parser.add_argument(
-    "-s", "--save", type=bool, help="Save model after training", default=True
-)
-parser.add_argument(
     "-m",
     "--monitor",
     type=bool,
@@ -37,37 +35,64 @@ parser.add_argument(
 parser.add_argument(
     "-r", "--rtol", type=float, help="Allowed error in reaching", default=0.05
 )
+parser.add_argument(
+    "-i", "--iterations", type=int, help="Number of iterations of training", default=10
+)
+
 args = parser.parse_args()
 target_pos = args.target_position
 timesteps = args.total_timesteps
 monitor = args.monitor
 rtol = args.rtol
 E = args.E
+its = args.iterations
+
+
+# location to save monitors
+monitor_dir = f"monitors_r{rtol}_target{target_pos}"
+os.makedirs(monitor_dir, exist_ok=True)
+
+# location to save trained agents
+agents_dir = f"agents_r{rtol}_target{target_pos}"
+os.makedirs(agents_dir, exist_ok=True)
 
 env = Chameleon(E=E, target_pos=target_pos, rtol=rtol)
 eval_env = Chameleon(E=E, target_pos=target_pos, rtol=rtol)
 
-if monitor:
-    env = Monitor(env, filename=f"logs/r{rtol}target{target_pos}time{timesteps}")
-    eval_env = Monitor(eval_env, filename="eval_logger")
+
+def load_plot_results(monitor_file: str, monitor_dir: str) -> None:
+    rews = np.loadtxt(monitor_file, delimiter=",", usecols=0, skiprows=2)
+    num_eps = rews.shape[0]
+    num_to_keep = 100 * math.floor(
+        int(num_eps / 100)
+    )  # just want it to be divisible by 100
+    rews = rews[:num_to_keep:]
+    rews = rews.reshape((-1, 100))
+    means = rews.mean(axis=1)
+    # Plot and save results
+    plt.plot(means)
+    plt.title("Episode reward over time")
+    plt.xlabel("Epoch (100 episodes)")
+    plt.ylabel("Mean reward")
+    plt.savefig(monitor_dir + f"/rew_plot{i}.png")
+    plt.clf()
 
 
-eval_callback = EvalCallback(
-    eval_env,
-    best_model_save_path="./logs/",
-    log_path="./logs/",
-    eval_freq=50_000,
-    deterministic=True,
-    render=False,
-    verbose=1,
-)
-model = PPO(
-    "MlpPolicy",
-    env,
-    verbose=0,
-)
-
-model.learn(total_timesteps=timesteps, callback=eval_callback)
-
-if args.save:
-    model.save(f"ppo_r{rtol}target{target_pos}time{timesteps}")
+for i in range(its):
+    monitor_file = monitor_dir + f"/run{i}.monitor.csv"
+    best_agent_path = agents_dir + f"/run{i}"
+    if monitor:
+        env = Monitor(env, filename=monitor_file)
+        eval_env = Monitor(eval_env)
+    eval_callback = EvalCallback(
+        eval_env,
+        best_model_save_path=best_agent_path,
+        eval_freq=int(timesteps / 10),
+        deterministic=True,
+        render=False,
+        verbose=0,
+    )
+    model = PPO("MlpPolicy", env, verbose=0)
+    model.learn(total_timesteps=timesteps, callback=eval_callback)
+    # Training results
+    load_plot_results(monitor_file, monitor_dir)
