@@ -30,7 +30,7 @@ class Chameleon(gym.Env):
         self.pos = copy.deepcopy(self.pos_init)
         self.u_current = self.pos - self.pos_init
         self.observation_space = gym.spaces.Box(low=0, high=1, shape=(1,))
-        self.action_space = gym.spaces.Box(low=-1, high=1, shape=(2,))
+        self.action_space = gym.spaces.Box(low=-1, high=1, shape=(1,))
         self.learning_counter = 0
         self.episode_length = 9  # length 10 eps but start counting at zero
         self.active_stress_hist = deque([], maxlen=self.episode_length + 1)
@@ -65,8 +65,8 @@ class Chameleon(gym.Env):
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         const = action[0] * np.ones(self.n_elems)
-        linear = action[1] * self.pos_init
-        active_stress = const + linear
+        # linear = action[1] * self.pos_init
+        active_stress = const  # + linear
 
         for i in range(1):  # take this many steps per learning step
             active_stress_prev = self.active_stress_hist[-1]
