@@ -1,16 +1,25 @@
+import argparse
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.animation import FuncAnimation
 import pickle
 import numpy as np
 
-with open("simulator/winning_history.txt", "rb") as fp:
+parser = argparse.ArgumentParser()
+
+parser.add_argument("target_pos", type=float, help="Target position.")
+
+args = parser.parse_args()
+
+target = args.target_pos
+
+with open("winning_history.txt", "rb") as fp:
     history = pickle.load(fp)
 
 h = np.array(history)
 fig = plt.figure(figsize=(7, 7))
 ax = plt.axes(xlim=(0, h.max() + 0.1), ylim=(-0.2, 0.2))
-ax.scatter(0.18, 0)  # this is really dumb. need to automate this
+ax.scatter(target, 0)
 ax.scatter(0.1, 0)
 scatter = ax.scatter(history[0][:, 0], history[0][:, 1])
 

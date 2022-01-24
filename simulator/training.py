@@ -14,59 +14,64 @@ parser.add_argument(
     "-tt",
     "--total_timesteps",
     type=int,
-    help="Total timesteps argument for algorithm to learn on",
+    help="Total timesteps argument for algorithm to learn on.",
     default=int(6e5),
 )
 parser.add_argument(
     "-tp",
     "--target_position",
     type=float,
-    help="Target position to reach to",
+    help="Target position to reach to.",
     default=0.18,
 )
-parser.add_argument("-E", type=float, help="Young's Modulus of tongue", default=1.0)
+parser.add_argument("-E", type=float, help="Young's Modulus of tongue.", default=1.0)
 parser.add_argument(
     "-m",
     "--monitor",
     type=bool,
-    help="Monitor the model during training",
+    help="Monitor the model during training.",
     default=True,
 )
 parser.add_argument(
-    "-r", "--rtol", type=float, help="Allowed error in reaching", default=0.05
+    "-a", "--atol", type=float, help="Allowed error in reaching.", default=0.05
 )
 parser.add_argument(
-    "-i", "--iterations", type=int, help="Number of iterations of training", default=10
+    "-i", "--iterations", type=int, help="Number of iterations of training.", default=1
 )
 
 args = parser.parse_args()
 target_pos = args.target_position
 timesteps = args.total_timesteps
 monitor = args.monitor
-rtol = args.rtol
+atol = args.atol
 E = args.E
 its = args.iterations
 
+print(f"Time steps: " + "{:.2e}".format(timesteps))
+print(f"Iterations: {its}")
+print(f"Target positions: {target_pos}")
+print(f"Allowed error: {atol}")
+
 
 # location to save monitors
-monitor_dir = f"monitors_r{rtol}_target{target_pos}"
+monitor_dir = f"monitors_a{atol}_target{target_pos}"
 os.makedirs(monitor_dir, exist_ok=True)
 
 # location to save trained agents
-agents_dir = f"agents_r{rtol}_target{target_pos}"
+agents_dir = f"agents_a{atol}_target{target_pos}"
 os.makedirs(agents_dir, exist_ok=True)
 
-env = Chameleon(E=E, target_pos=target_pos, rtol=rtol)
-eval_env = Chameleon(E=E, target_pos=target_pos, rtol=rtol)
+env = Chameleon(E=E, target_pos=target_pos, atol=atol)
+eval_env = Chameleon(E=E, target_pos=target_pos, atol=atol)
 
 
 def load_plot_results(monitor_file: str, monitor_dir: str) -> None:
     rews = np.loadtxt(monitor_file, delimiter=",", usecols=0, skiprows=2)
     num_eps = rews.shape[0]
-    num_to_keep = 100 * math.floor(
+    keep_after = 100 * math.floor(
         int(num_eps / 100)
-    )  # just want it to be divisible by 100
-    rews = rews[:num_to_keep:]
+    )  # just want number of episodes kept to be divisible by 100
+    rews = rews[:keep_after:]
     rews = rews.reshape((-1, 100))
     means = rews.mean(axis=1)
     # Plot and save results
