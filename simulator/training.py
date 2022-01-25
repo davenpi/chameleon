@@ -6,7 +6,10 @@ import matplotlib.pyplot as plt
 from chameleon import Chameleon
 from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.callbacks import EvalCallback
+from stable_baselines3.common.callbacks import (
+    EvalCallback,
+    StopTrainingOnRewardThreshold,
+)
 
 
 parser = argparse.ArgumentParser()
@@ -21,7 +24,7 @@ parser.add_argument(
     "-tp",
     "--target_position",
     type=float,
-    help="Target position to reach to.",
+    help="Initial target position to reach to.",
     default=0.18,
 )
 parser.add_argument("-E", type=float, help="Young's Modulus of tongue.", default=1.0)
@@ -49,7 +52,6 @@ its = args.iterations
 
 print(f"Time steps: " + "{:.2e}".format(timesteps))
 print(f"Iterations: {its}")
-print(f"Target positions: {target_pos}")
 print(f"Allowed error: {atol}")
 
 
@@ -82,21 +84,24 @@ def load_plot_results(monitor_file: str, monitor_dir: str) -> None:
     plt.savefig(monitor_dir + f"/rew_plot{i}.png")
     plt.clf()
 
-
+callback_on_best = StopTrainingOnRewardThreshold(reward_threshold=-0.1, verbose=0)
 for i in range(its):
     monitor_file = monitor_dir + f"/run{i}.monitor.csv"
+    eval_file = monitor_dir + f"/run{i}.eval.csv"
     best_agent_path = agents_dir + f"/run{i}"
     if monitor:
         env = Monitor(env, filename=monitor_file)
-        eval_env = Monitor(eval_env)
+        eval_env = Monitor(eval_env, filename=eval_file)
     eval_callback = EvalCallback(
         eval_env,
         best_model_save_path=best_agent_path,
+        callback_on_new_best=callback_on_best,
         eval_freq=int(timesteps / 10),
         deterministic=True,
         render=False,
         verbose=0,
     )
+
     model = PPO("MlpPolicy", env, verbose=0)
     model.learn(total_timesteps=timesteps, callback=eval_callback)
     # Training results

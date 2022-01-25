@@ -19,15 +19,15 @@ with open("winning_history.txt", "rb") as fp:
 h = np.array(history)
 fig = plt.figure(figsize=(7, 7))
 ax = plt.axes(xlim=(0, h.max() + 0.1), ylim=(-0.2, 0.2))
-ax.scatter(target, 0)
-ax.scatter(0.1, 0)
 scatter = ax.scatter(history[0][:, 0], history[0][:, 1])
 
 
 def update(frame_number):
     scatter.set_offsets(history[frame_number])
     history_tip = history[frame_number][-1][0]
-    ax.set_title(f"Tip position is {history_tip}")
+    ax.scatter(0.1, 0, c="mediumseagreen")
+    ax.scatter(target, 0, c="darkorange")
+    ax.set_title("Tip position is %.3f" % history_tip)
     return (scatter,)
 
 
