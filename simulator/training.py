@@ -17,8 +17,8 @@ parser.add_argument(
     "-tt",
     "--total_timesteps",
     type=int,
-    help="Total timesteps argument for algorithm to learn on.",
-    default=int(6e5),
+    help="Number to multiply by 2048 to get total number of timesteps",  # deals with n_steps=2048 causing miscounting
+    default=int(2.5e2),
 )
 parser.add_argument(
     "-tp",
@@ -44,7 +44,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 target_pos = args.target_position
-timesteps = args.total_timesteps
+timesteps = int(2048 * args.total_timesteps)
 monitor = args.monitor
 atol = args.atol
 E = args.E
@@ -83,6 +83,7 @@ def load_plot_results(monitor_file: str, monitor_dir: str) -> None:
     plt.ylabel("Mean reward")
     plt.savefig(monitor_dir + f"/rew_plot{i}.png")
     plt.clf()
+
 
 callback_on_best = StopTrainingOnRewardThreshold(reward_threshold=-0.1, verbose=0)
 for i in range(its):

@@ -11,6 +11,9 @@ parser.add_argument(
     "-a", "--atol", default=0.007, type=float, help="Absolute error tolerance."
 )
 parser.add_argument(
+    "-t", "--first_target", default=0.19, type=float, help="First target to reach"
+)
+parser.add_argument(
     "-n", "--nevals", default=5, type=int, help="Number of evaluation episodes to run"
 )
 
@@ -18,10 +21,13 @@ args = parser.parse_args()
 model_path = args.model
 atol = args.atol
 n = args.nevals
+target = args.first_target
 
 model = PPO.load(model_path)
 
-targets = (0.2 - 0.1) * np.random.sample(n) + 0.1
+targets = [target]
+if n > 0:
+    targets += list((0.2 - 0.1) * np.random.sample(n) + 0.1)
 
 rewards = []
 for tar in targets:

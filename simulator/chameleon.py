@@ -125,7 +125,6 @@ class Chameleon(gym.Env):
         self.u_current = self.pos - self.pos_init
         self.active_stress_hist.clear()
         self.active_stress_hist.append(np.zeros(self.n_elems))
-        self.learning_counter = 0
         if self.train:
             self.target_pos = (
                 self.original_target_pos - self.pos[-1]
