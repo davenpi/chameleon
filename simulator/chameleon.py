@@ -11,6 +11,7 @@ class Chameleon(gym.Env):
         self,
         E: float = 1.0,
         alpha: float = 1,
+        C: float = 1,
         n_elems: int = 50,
         dt: float = 1e-5,
         init_length: float = 0.1,
@@ -21,6 +22,9 @@ class Chameleon(gym.Env):
         super(Chameleon, self).__init__()
         self.E = E
         self.alpha = alpha
+        self.C = C
+        self.g = self.E / self.alpha
+        self.length = init_length
         self.n_elems = n_elems
         self.target_pos = target_pos
         self.original_target_pos = target_pos
@@ -30,6 +34,8 @@ class Chameleon(gym.Env):
         self.dx = self.pos_init[1] - self.pos_init[0]
         self.pos = copy.deepcopy(self.pos_init)
         self.u_current = self.pos - self.pos_init
+        self.u_hist = deque([], maxlen=10_000)
+        self.u_hist.append(self.u_current)
         self.observation_space = gym.spaces.Box(low=-1, high=1, shape=(1,))
         self.action_space = gym.spaces.Box(low=-1, high=1, shape=(1,))
         self.learning_counter = 0
@@ -45,25 +51,37 @@ class Chameleon(gym.Env):
         ), "target outside observation space"
         self.train = train
 
-    def one_step(
-        self, active_stress_curr: np.ndarray, active_stress_prev: np.ndarray
-    ) -> None:
+    def one_step(self, active_stress: np.ndarray) -> None:
         """
         Update the displacement using the equation of motion.
 
-        Need to use a current and a previous active stress because one of the
-        functions which helps me implement the boundary conditions depends on
-        the time derivative of the active stress.
+        Satisfy the stress free equation at the boundary.
+
+        Parameters
+        ----------
+        active_stress : np.ndarry
+            Active steess to be applied at this time.
         """
-        ds_dt = (active_stress_curr - active_stress_prev) / self.dt
-        F_t = 2 * active_stress_curr[-1] + (self.alpha / self.E) * ds_dt[-1]
-        sig_int = cumtrapz(active_stress_curr, dx=self.dx, initial=0)
+        sig_int = cumtrapz(active_stress, dx=self.dx, initial=0)
         self.u_current = self.u_current + self.dt * (
-            -(self.E / self.alpha) * self.u_current
-            - (1 / self.alpha) * sig_int
-            + (1 / self.alpha) * self.pos_init * F_t
+            -self.g * self.u_current - (1 / self.alpha) * sig_int
         )
         self.pos = self.pos_init + self.u_current
+        self.u_hist.append(self.u_current)
+
+    def one_step_drag(self, active_stress: np.ndarray) -> None:
+        # IMPLEMENT ONE STEP WHERE THERE IS AN EXTERNAL DRAG
+        sig_int = cumtrapz(active_stress, dx=self.dx, initial=0)
+        du_dtL = -(self.E / (self.alpha + self.C * self.length)) * (
+            self.u_current[-1] + sig_int[-1]
+        )
+        self.u_current = self.u_current + self.dt * (
+            -self.g * self.u_current
+            - (1 / self.alpha) * sig_int
+            - (self.C * self.pos_init / self.alpha) * du_dtL
+        )
+        self.pos = self.pos_init + self.u_current
+        self.u_hist.append(self.u_current)
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         const = action[0] * np.ones(self.n_elems)
