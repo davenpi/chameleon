@@ -1,9 +1,9 @@
 import copy
 import gym
 from typing import Tuple
-from scipy.integrate import cumtrapz
 from collections import deque
 import numpy as np
+from scipy.integrate import cumtrapz
 
 
 class Chameleon(gym.Env):
@@ -72,8 +72,8 @@ class Chameleon(gym.Env):
     def one_step_drag(self, active_stress: np.ndarray) -> None:
         # IMPLEMENT ONE STEP WHERE THERE IS AN EXTERNAL DRAG
         sig_int = cumtrapz(active_stress, dx=self.dx, initial=0)
-        du_dtL = -(self.E / (self.alpha + self.C * self.length)) * (
-            self.u_current[-1] + sig_int[-1]
+        du_dtL = -(1 / (1 + self.C * self.length / self.alpha)) * (
+            self.g * self.u_current[-1] + (1 / self.alpha) * sig_int[-1]
         )
         self.u_current = self.u_current + self.dt * (
             -self.g * self.u_current

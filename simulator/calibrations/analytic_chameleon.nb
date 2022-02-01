@@ -1,0 +1,58 @@
+Notebook[{Cell[
+CellGroupData[{Cell[
+BoxData[RowBox[{"Solving"," ","the"," ","analytical"," ","equation"}]],
+"Title",ExpressionUUID -> "4ed3b875-4f42-4051-b568-44b97bd8ebb0"],Cell[
+TextData[
+{"Choosing",StyleBox[RowBox[{" ","\[Sigma]"," "," ","="," ","-"}]],"x"," ","t"," ","we"," ","have"," ","the"," ","analytical"," ","solution"," ","for"," ","u","\n"}],
+"Text",ExpressionUUID -> "705432f8-ab60-49cf-a6a4-285a1baa7fda"],Cell[
+BoxData[{RowBox[
+{RowBox[{"ClearAll","[","\"Global`*\"","]"}],";"}],"\n",RowBox[{RowBox[{RowBox[{"\[Alpha]"," ","="," ","5"}]," ",RowBox[
+{"(*",RowBox[{"strain"," ","drag"}],"*)"}],";"," ",RowBox[{"L"," ","="," ","10"}],RowBox[
+{"(*","Length","*)"}],";"," ",RowBox[{"Y"," ","=","1"}],RowBox[{"(*",RowBox[{RowBox[
+{"Young","'"}],"s"," ",RowBox[{"modulus","."}]}],"*)"}],";"," ",RowBox[{"Ca"," ","="," ","1"}],";"}]," ",RowBox[
+{"(*"," ",RowBox[{"drag"," ","coefficient"}]," ","*)"}]}],"\n",RowBox[{RowBox[{"\[Beta]"," ","="," ",RowBox[
+{"1","/",RowBox[{"(",RowBox[{"\[Alpha]","+",RowBox[{"Ca","*","L"}]}],")"}]}]}],";"," ",RowBox[
+{"\[Gamma]"," ","="," ",RowBox[{"Y","/","\[Alpha]"}]}],";"}]}],"Input",CellLabel -> "In[10]:= ",
+ExpressionUUID -> "82d864aa-0c4f-4050-985d-26b4086dc1f4"],Cell[
+BoxData[{RowBox[{RowBox[
+{RowBox[{"s","[",RowBox[{"x_",","," ","t_"}],"]"}],":="," ",RowBox[{RowBox[{RowBox[
+{"-",RowBox[{"(",RowBox[{RowBox[{"Sin","[","x","]"}],"^","2"}],")"}]}],"*",RowBox[
+{"(",RowBox[{RowBox[{"Sin","[","t","]"}],"^","2"}],")"}]}],"-","1"}]}],";"}],"\n",RowBox[
+{RowBox[{RowBox[{"sint","[",RowBox[{"xf_",","," ","t_"}],"]"}]," ",":="," ",RowBox[
+{"Integrate","[",RowBox[{RowBox[{"s","[",RowBox[{"x",","," ","t"}],"]"}],","," ",RowBox[
+{"{",RowBox[{"x",","," ","0",","," ","xf"}],"}"}]}],"]"}]}],";"}],"\n",RowBox[{RowBox[
+{RowBox[{"wsint","[",RowBox[{"t_",","," ","L_",","," ","Y_",","," ","B_"}],"]"}],":=",RowBox[
+{RowBox[{"E","^",RowBox[{"(",RowBox[{"Y","*","B","*","t"}],")"}]}],"*",RowBox[{"sint","[",RowBox[
+{"L",","," ","t"}],"]"}]}]}],";"}],"\n",RowBox[{RowBox[{RowBox[{"F","[",RowBox[{"x_",","," ","t_"}],"]"}]," ",":="," ",RowBox[
+{RowBox[{RowBox[{"(",RowBox[{RowBox[{"-","1"}],"/","\[Alpha]"}],")"}],"*",RowBox[
+{"sint","[",RowBox[{"x",","," ","t"}],"]"}]}]," ","-"," ",RowBox[{RowBox[{"(",RowBox[
+{"Ca","*",RowBox[{"x","/","\[Alpha]"}]}],")"}],"*",RowBox[{"(",RowBox[{RowBox[{"\[Beta]","*","\[Beta]","*","Y","*",RowBox[
+{"E","^",RowBox[{"(",RowBox[{RowBox[{"-","Y"}],"*","\[Beta]","*","t"}],")"}]}],"*",RowBox[
+{"Integrate","[",RowBox[{RowBox[{"wsint","[",RowBox[{"z",","," ","L",","," ","Y",","," ","\[Beta]"}],"]"}],","," ",RowBox[
+{"{",RowBox[{"z",","," ","0",",","t"}],"}"}]}],"]"}]}],"-",RowBox[{"\[Beta]","*",RowBox[
+{"sint","[",RowBox[{"L",","," ","t"}],"]"}]}]}],")"}]}]}]}],";"}],"\n",RowBox[{RowBox[
+{RowBox[{"u","[",RowBox[{"x_",","," ","t_",",","\[Gamma]_"}],"]"}],":=",RowBox[{RowBox[
+{"E","^",RowBox[{"(",RowBox[{RowBox[{"-","\[Gamma]"}],"*","t"}],")"}]}],RowBox[{"Integrate","[",RowBox[
+{RowBox[{RowBox[{"(",RowBox[{"E","^",RowBox[{"(",RowBox[{"\[Gamma]","*","z"}],")"}]}],")"}],"*",RowBox[
+{"F","[",RowBox[{"x",","," ","z"}],"]"}]}],","," ",RowBox[{"{",RowBox[{"z",","," ","0",","," ","t"}],"}"}]}],"]"}]}]}],";"}]}],
+"Input",CellLabel -> "In[13]:= ",ExpressionUUID -> "59b51561-e8ab-4c22-9fef-a58e8e89f9a4"],Cell[
+CellGroupData[
+{Cell[
+BoxData[RowBox[{"table"," ","="," ",RowBox[{RowBox[{"Table","[",RowBox[{RowBox[
+{"{",RowBox[{"u","[",RowBox[{"xx",",","10",",","\[Gamma]"}],"]"}],"}"}],","," ",RowBox[
+{"{",RowBox[{"xx",","," ","0",","," ","L",","," ","1"}],"}"}]}],"]"}],"//","N"}]}]],
+"Input",CellLabel -> "In[18]:= ",ExpressionUUID -> "6e18ce44-b7bb-48f2-b5cc-8a27b8cee5e2"],Cell[
+BoxData[
+RowBox[{"{",RowBox[{RowBox[{"{","0.`","}"}],",",RowBox[{"{","0.5165574762357745`","}"}],",",RowBox[
+{"{","1.281503539146332`","}"}],",",RowBox[{"{","1.8397173528986361`","}"}],",",RowBox[
+{"{","2.321604522975124`","}"}],",",RowBox[{"{","3.0737501248297696`","}"}],",",RowBox[
+{"{","3.6772879874908857`","}"}],",",RowBox[{"{","4.134252699477464`","}"}],",",RowBox[
+{"{","4.8618170566094845`","}"}],",",RowBox[{"{","5.510736191819935`","}"}],",",RowBox[
+{"{","5.954511602509361`","}"}]}],"}"}],StandardForm],"Output",CellLabel -> "Out[18]= ",
+ExpressionUUID -> "95f81873-7010-4403-95bd-3876576859ff"]},Open],ExpressionUUID -> "ce08b638-09bc-4f2d-bee1-4119fe3ebeab"],Cell[
+BoxData[
+RowBox[{"ListPlot","[",RowBox[{"table",",",RowBox[{"AxesLabel","\[Rule]",RowBox[{"{",RowBox[
+{"\"x\"",","," ","\"u\""}],"}"}]}],","," ",RowBox[{"PlotLabel","\[Rule]","\"time=1\""}]}],"]"}]],
+"Input",CellLabel -> "In[31]:= ",ExpressionUUID -> "a6bd63e5-865c-43af-890a-c3db98775b45"]},
+Open],ExpressionUUID -> "72f580e1-03a7-499c-8961-db96a47f7deb"]},StyleDefinitions -> "Default.nb",
+FrontEndVersion -> "13. for Wolfram Cloud 1.61.2 (January 4, 2022)"]
