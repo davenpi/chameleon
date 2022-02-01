@@ -13,7 +13,7 @@ class Chameleon(gym.Env):
         alpha: float = 1,
         C: float = 1,
         n_elems: int = 50,
-        dt: float = 1e-5,
+        dt: float = 1e-3,
         init_length: float = 0.1,
         target_pos: float = 0.18,
         atol: float = 0.05,
@@ -25,6 +25,7 @@ class Chameleon(gym.Env):
         self.C = C
         self.g = self.E / self.alpha
         self.length = init_length
+        self.drag = False
         self.n_elems = n_elems
         self.target_pos = target_pos
         self.original_target_pos = target_pos
@@ -70,7 +71,9 @@ class Chameleon(gym.Env):
         self.u_hist.append(self.u_current)
 
     def one_step_drag(self, active_stress: np.ndarray) -> None:
-        # IMPLEMENT ONE STEP WHERE THERE IS AN EXTERNAL DRAG
+        """
+        Step forward in time with drag at boundary.
+        """
         sig_int = cumtrapz(active_stress, dx=self.dx, initial=0)
         du_dtL = -(1 / (1 + self.C * self.length / self.alpha)) * (
             self.g * self.u_current[-1] + (1 / self.alpha) * sig_int[-1]
@@ -84,12 +87,14 @@ class Chameleon(gym.Env):
         self.u_hist.append(self.u_current)
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
-        const = action[0] * np.ones(self.n_elems)
+        const = 10 * action[0] * np.ones(self.n_elems)
         active_stress = const
-
-        active_stress_prev = self.active_stress_hist[-1]
-        self.one_step(active_stress, active_stress_prev)
         self.active_stress_hist.append(active_stress)
+
+        if self.drag:
+            self.one_step_drag(active_stress=active_stress)
+        else:
+            self.one_step(active_stress=active_stress)
 
         self.learning_counter += 1
         diffs = np.diff(self.pos)
@@ -130,6 +135,7 @@ class Chameleon(gym.Env):
                     reward = -1
                     self.ep_rew += reward
                     done = False
+                    self.drag = True
             else:
                 reward = -1
                 self.ep_rew += reward
@@ -145,14 +151,18 @@ class Chameleon(gym.Env):
         self.active_stress_hist.append(np.zeros(self.n_elems))
         if self.train:
             self.target_pos = (
-                self.original_target_pos - self.pos[-1]
-            ) * np.random.sample(1) + self.pos[-1]
+                (self.original_target_pos - self.pos[-1]) * np.random.sample(1)
+                + self.pos[-1]
+                + self.atol
+            )
         else:
             self.target_pos = self.original_target_pos
         difference = self.target_pos - self.pos[-1]
         state = np.array([difference], dtype=np.float32)
         self.ep_rew = 0
         self.episode_counter += 1
+        self.learning_counter = 0
+        self.drag = False
         return state
 
     def render():

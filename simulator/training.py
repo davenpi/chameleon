@@ -50,7 +50,7 @@ atol = args.atol
 E = args.E
 its = args.iterations
 
-print(f"Time steps: " + "{:.2e}".format(timesteps))
+print(f"Time steps: " + "{:.3e}".format(timesteps))
 print(f"Iterations: {its}")
 print(f"Allowed error: {atol}")
 
