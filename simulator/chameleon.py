@@ -30,6 +30,7 @@ class Chameleon(gym.Env):
         self.target_pos = target_pos
         self.original_target_pos = target_pos
         self.dt = dt
+        self.steps_per_sec = int(1 / self.dt)
         self.atol = atol
         self.pos_init = np.linspace(0, init_length, self.n_elems)
         self.dx = self.pos_init[1] - self.pos_init[0]
@@ -40,7 +41,7 @@ class Chameleon(gym.Env):
         self.observation_space = gym.spaces.Box(low=-1, high=1, shape=(1,))
         self.action_space = gym.spaces.Box(low=-1, high=1, shape=(1,))
         self.learning_counter = 0
-        self.episode_length = 9  # length 10 eps but start counting at zero
+        self.episode_length = 59  # length 60 eps but start counting at zero
         self.active_stress_hist = deque([], maxlen=self.episode_length + 1)
         self.active_stress_hist.append(np.zeros(self.n_elems))
         self.winning_stress_hist = deque([], maxlen=self.episode_length + 1)
@@ -87,19 +88,21 @@ class Chameleon(gym.Env):
         self.u_hist.append(self.u_current)
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
-        const = 10 * action[0] * np.ones(self.n_elems)
+        const = action[0] * np.ones(self.n_elems)
         active_stress = const
         self.active_stress_hist.append(active_stress)
 
         if self.drag:
-            self.one_step_drag(active_stress=active_stress)
+            for _ in range(self.steps_per_sec):
+                self.one_step_drag(active_stress=active_stress)
         else:
-            self.one_step(active_stress=active_stress)
+            for _ in range(self.steps_per_sec):
+                self.one_step(active_stress=active_stress)
 
         self.learning_counter += 1
         diffs = np.diff(self.pos)
         if any(diffs < 0):
-            reward = -100
+            reward = -60
             self.ep_rew += reward
             done = True
             state = self.reset()

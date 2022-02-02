@@ -1,5 +1,6 @@
 import os
 import math
+import time
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
@@ -50,6 +51,9 @@ atol = args.atol
 E = args.E
 its = args.iterations
 
+t = time.localtime()
+current_time = time.strftime("%H:%M:%S", t)
+print(f"Started at {current_time}")
 print(f"Time steps: " + "{:.3e}".format(timesteps))
 print(f"Iterations: {its}")
 print(f"Allowed error: {atol}")
@@ -63,8 +67,10 @@ os.makedirs(monitor_dir, exist_ok=True)
 agents_dir = f"agents_a{atol}_target{target_pos}"
 os.makedirs(agents_dir, exist_ok=True)
 
-env = Chameleon(E=E, target_pos=target_pos, atol=atol)
-eval_env = Chameleon(E=E, target_pos=target_pos, atol=atol)
+env = Chameleon(
+    E=E, target_pos=target_pos, atol=atol, dt=0.01
+)  # train = False just to make task easier for now
+eval_env = Chameleon(E=E, target_pos=target_pos, atol=atol, dt=0.01)
 
 
 def load_plot_results(monitor_file: str, monitor_dir: str) -> None:
@@ -107,3 +113,7 @@ for i in range(its):
     model.learn(total_timesteps=timesteps, callback=eval_callback)
     # Training results
     load_plot_results(monitor_file, monitor_dir)
+
+t = time.localtime()
+current_time = time.strftime("%H:%M:%S", t)
+print(f"Ended at {current_time}")
