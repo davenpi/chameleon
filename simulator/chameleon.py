@@ -1,9 +1,9 @@
 import copy
-import gym
 from typing import Tuple
 from collections import deque
+import gym
 import numpy as np
-from scipy.integrate import cumtrapz
+from scipy.integrate import cumtrapz, odeint
 
 
 class Chameleon(gym.Env):
@@ -11,18 +11,22 @@ class Chameleon(gym.Env):
         self,
         E: float = 1.0,
         alpha: float = 1,
-        C: float = 1,
+        c: float = 1,
+        m: float = 1,
         n_elems: int = 50,
         dt: float = 1e-3,
-        init_length: float = 0.1,
+        init_length: float = 1,
         target_pos: float = 0.18,
         atol: float = 0.05,
         train: bool = True,
+        t_max: float = 10,
     ) -> None:
         super(Chameleon, self).__init__()
         self.E = E
         self.alpha = alpha
-        self.C = C
+        self.c = c
+        self.m = m
+        self.tau = self.alpha / self.E
         self.g = self.E / self.alpha
         self.length = init_length
         self.drag = False
@@ -52,6 +56,14 @@ class Chameleon(gym.Env):
             self.target_pos < self.observation_space.high.item()
         ), "target outside observation space"
         self.train = train
+        self.t_max = t_max
+        self.t_arr = np.arange(0, self.t_max + self.dt, self.dt)
+        self.time = 0
+        self.one_steps = 0
+        self.U0 = [
+            self.u_current[-1],
+            0,
+        ]  # hardcode zero initial velocity
 
     def one_step(self, active_stress: np.ndarray) -> None:
         """
@@ -70,6 +82,60 @@ class Chameleon(gym.Env):
         )
         self.pos = self.pos_init + self.u_current
         self.u_hist.append(self.u_current)
+
+    def one_step_w_inertia(self, active_stress: np.ndarray) -> None:
+        """
+        I need to implement a one step method which does all of the cases.
+
+        Will build each one seperately and then have a function which does the
+        switching.
+        """
+
+        sig_int = cumtrapz(active_stress, dx=self.dx, initial=0)
+
+        def dU_dt(U, t):
+            ode_list = [
+                U[1],
+                (
+                    -(self.length * self.c + self.alpha) * U[1]
+                    - self.E * U[0]
+                    + sig_int[-1]
+                )
+                / (self.length * self.m),
+            ]
+            return ode_list
+
+        if self.time == 0:
+            """deal with inital case first"""
+            u_0 = self.U0[0]
+            duL_dt = self.U0[1]
+            d2uL_dt = (-(self.length * self.c + self.alpha) * duL_dt - self.E * u_0) / (
+                self.length * self.m
+            )
+        else:
+            ts = np.arange(self.time - self.dt, self.time, self.dt / 10)  # use
+            Us = odeint(dU_dt, self.U0, ts)
+            duL_dt = Us[:, 1][-1]  # get the value at the final time
+            d2uL_dt = np.gradient(Us[:, 1], self.dt, edge_order=2)[
+                -1
+            ]  # get the value at the final time
+            self.U0[0] = Us[
+                -1, 0
+            ]  # set the new initial condition to the previous final condition
+
+        f = -self.c * duL_dt - self.m * d2uL_dt
+        self.u_current = self.u_current + self.dt * (
+            -(1 / self.tau) * self.u_current
+            - (1 / self.alpha) * sig_int
+            + self.pos * f / self.alpha
+        )
+        self.pos = self.pos_init + self.u_current
+        self.U0[0] = self.u_current[-1]
+        self.U0[
+            1
+        ] = duL_dt  # set the new initial derivative to the previous final derivative
+        self.u_hist.append(self.u_current)
+        self.time += self.dt
 
     def one_step_drag(self, active_stress: np.ndarray) -> None:
         """
@@ -166,6 +232,8 @@ class Chameleon(gym.Env):
         self.episode_counter += 1
         self.learning_counter = 0
         self.drag = False
+        self.one_steps = 0
+        self.time = 0
         return state
 
     def render():
