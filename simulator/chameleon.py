@@ -3,13 +3,13 @@ from typing import Tuple
 from collections import deque
 import gym
 import numpy as np
-from scipy.integrate import cumtrapz, odeint
+from scipy.integrate import cumtrapz, solve_ivp
 
 
 class Chameleon(gym.Env):
     def __init__(
         self,
-        E: float = 1.0,
+        E: float = 1,
         alpha: float = 1,
         c: float = 1,
         m: float = 1,
@@ -85,43 +85,38 @@ class Chameleon(gym.Env):
 
     def one_step_w_inertia(self, active_stress: np.ndarray) -> None:
         """
-        I need to implement a one step method which does all of the cases.
-
-        Will build each one seperately and then have a function which does the
-        switching.
+        This deals with the situation on the boundary once we have grabbed
+        the food.
         """
-
         sig_int = cumtrapz(active_stress, dx=self.dx, initial=0)
-
-        def dU_dt(U, t):
-            ode_list = [
-                U[1],
-                (
-                    -(self.length * self.c + self.alpha) * U[1]
-                    - self.E * U[0]
-                    + sig_int[-1]
-                )
-                / (self.length * self.m),
-            ]
-            return ode_list
-
         if self.time == 0:
             """deal with inital case first"""
             u_0 = self.U0[0]
             duL_dt = self.U0[1]
-            d2uL_dt = (-(self.length * self.c + self.alpha) * duL_dt - self.E * u_0) / (
-                self.length * self.m
-            )
+            d2uL_dt = (
+                -(self.length * self.c + self.alpha) * duL_dt
+                - self.E * u_0
+                - sig_int[-1]
+            ) / (self.length * self.m)
         else:
-            ts = np.arange(self.time - self.dt, self.time, self.dt / 10)  # use
-            Us = odeint(dU_dt, self.U0, ts)
-            duL_dt = Us[:, 1][-1]  # get the value at the final time
-            d2uL_dt = np.gradient(Us[:, 1], self.dt, edge_order=2)[
-                -1
-            ]  # get the value at the final time
-            self.U0[0] = Us[
-                -1, 0
-            ]  # set the new initial condition to the previous final condition
+
+            def system(t, y, m, L, c, a, E, sig_int):
+                """In goes the y value"""
+                mat = np.array([[0, 1], [-E / (L * m), -(L * c + a) / (L * m)]])
+                y_out = np.matmul(mat, y) + np.array([0, -sig_int[-1] / (L * m)])
+                return y_out
+
+            sol = solve_ivp(
+                system,
+                [0, self.time],  # time interval. overkill but leave it
+                self.U0,  # initial conditions
+                args=[self.m, self.length, self.c, self.alpha, self.E, sig_int],
+            )
+            duL_dt = sol["y"][1][-1]  # get the value at the final time
+            try:
+                d2uL_dt = np.gradient(sol["y"][1], sol["t"], edge_order=2)[-1]
+            except:
+                d2uL_dt = np.gradient(sol["y"][1], sol["t"], edge_order=1)[-1]
 
         f = -self.c * duL_dt - self.m * d2uL_dt
         self.u_current = self.u_current + self.dt * (
@@ -131,9 +126,7 @@ class Chameleon(gym.Env):
         )
         self.pos = self.pos_init + self.u_current
         self.U0[0] = self.u_current[-1]
-        self.U0[
-            1
-        ] = duL_dt  # set the new initial derivative to the previous final derivative
+        self.U0[1] = duL_dt
         self.u_hist.append(self.u_current)
         self.time += self.dt
 
