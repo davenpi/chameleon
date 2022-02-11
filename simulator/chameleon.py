@@ -61,9 +61,10 @@ class Chameleon(gym.Env):
         self.time = 0
         self.one_steps = 0
         self.U0 = [
-            self.u_current[-1],
             0,
-        ]  # hardcode zero initial velocity
+            0,
+        ]  # hardcode zero initial velocity. in reality this comes from reaching out phase
+        self.F = []
 
     def one_step(self, active_stress: np.ndarray) -> None:
         """
@@ -83,6 +84,75 @@ class Chameleon(gym.Env):
         self.pos = self.pos_init + self.u_current
         self.u_hist.append(self.u_current)
 
+    def compute_boundary_stress(self, active_stress: np.ndarray) -> Tuple[float, float]:
+        """Compute boundary stress F for a given active stress."""
+        sig_int = cumtrapz(active_stress, dx=self.dx)
+
+        def system(t, y, m, L, c, a, E, sig_int):
+            """systems of equations specifying my system"""
+            mat = np.array([[0, 1], [-E / (L * m), -(L * c + a) / (L * m)]])
+            y_out = np.matmul(mat, y) + np.array([0, -sig_int[-1] / (L * m)])
+            return y_out
+
+        if self.time == 0:
+            duL_dt = self.U0[1]
+            d2uL_dt = (1 / self.length * self.m) * (
+                -self.E * self.U0[0]
+                - (self.length * self.c + self.alpha) * duL_dt
+                - sig_int[-1]
+            )
+            u = [self.U0[0]]
+        else:
+            # print(f"T span is {[self.time-self.dt, self.time]}")
+            sol = solve_ivp(
+                system,
+                t_span=[self.time - self.dt, self.time],
+                # method="DOP853",
+                y0=[self.U0[0], self.U0[1]],
+                args=[self.m, self.length, self.c, self.alpha, self.E, sig_int],
+            )
+            t = sol["t"]
+            # print(f"T shape{t.shape}")
+            u = sol["y"][0]
+            duL_dt = sol["y"][1]
+            try:
+                d2uL_dt = np.gradient(duL_dt, t, edge_order=2)
+            except:
+                d2uL_dt = np.gradient(duL_dt, t, edge_order=1)
+                # print("exception!")
+            duL_dt = duL_dt[-1]
+            d2uL_dt = d2uL_dt[-1]
+            self.U0[0] = u[-1]
+
+        self.U0[1] = duL_dt
+        F = -self.c * duL_dt - self.m * d2uL_dt
+        return F, u[-1]
+
+    def one_step_return(self, active_stress: np.ndarray) -> None:
+        """
+        Method which implements one step of the dynamics after reaching.
+
+        I need to simulate the dynamics at the tip at each time step. The
+        update rule is du/dt = -gamma u - (1/alpha) int(sig_a) + Fx/(alpha).
+        The difference between this method and the other stepping method is
+        that this one implement the equation of motion with a different
+        boundary condition. I need to use this function to compute F(t) at
+        every time step and do it incrementally as the active stress is
+        specified.
+        """
+        sig_int = cumtrapz(active_stress, dx=self.dx, initial=0)
+        F, u = self.compute_boundary_stress(active_stress)
+
+        # print(u - self.u_current[-1])  # compare U values at equal times
+
+        self.u_current = self.u_current + self.dt * (
+            -self.g * self.u_current
+            - (1 / self.alpha) * sig_int
+            + F * self.pos_init / self.alpha
+        )
+        self.F.append(F)
+        self.time += self.dt
+
     def one_step_w_inertia(self, active_stress: np.ndarray) -> None:
         """
         This deals with the situation on the boundary once we have grabbed
@@ -101,14 +171,17 @@ class Chameleon(gym.Env):
         else:
 
             def system(t, y, m, L, c, a, E, sig_int):
-                """In goes the y value"""
+                """Define ode system of equations."""
                 mat = np.array([[0, 1], [-E / (L * m), -(L * c + a) / (L * m)]])
                 y_out = np.matmul(mat, y) + np.array([0, -sig_int[-1] / (L * m)])
                 return y_out
 
             sol = solve_ivp(
                 system,
-                [0, self.time],  # time interval. overkill but leave it
+                [
+                    self.time - self.dt,
+                    self.time,
+                ],  # time interval. overkill but leave it
                 self.U0,  # initial conditions
                 args=[self.m, self.length, self.c, self.alpha, self.E, sig_int],
             )
@@ -127,6 +200,7 @@ class Chameleon(gym.Env):
         self.pos = self.pos_init + self.u_current
         self.U0[0] = self.u_current[-1]
         self.U0[1] = duL_dt
+        self.F.append(f)
         self.u_hist.append(self.u_current)
         self.time += self.dt
 
