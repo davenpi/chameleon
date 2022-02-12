@@ -107,7 +107,7 @@ class Chameleon(gym.Env):
             sol = solve_ivp(
                 system,
                 t_span=[self.time - self.dt, self.time],
-                # method="DOP853",
+                method="BDF",
                 y0=[self.U0[0], self.U0[1]],
                 args=[self.m, self.length, self.c, self.alpha, self.E, sig_int],
             )
@@ -151,57 +151,6 @@ class Chameleon(gym.Env):
             + F * self.pos_init / self.alpha
         )
         self.F.append(F)
-        self.time += self.dt
-
-    def one_step_w_inertia(self, active_stress: np.ndarray) -> None:
-        """
-        This deals with the situation on the boundary once we have grabbed
-        the food.
-        """
-        sig_int = cumtrapz(active_stress, dx=self.dx, initial=0)
-        if self.time == 0:
-            """deal with inital case first"""
-            u_0 = self.U0[0]
-            duL_dt = self.U0[1]
-            d2uL_dt = (
-                -(self.length * self.c + self.alpha) * duL_dt
-                - self.E * u_0
-                - sig_int[-1]
-            ) / (self.length * self.m)
-        else:
-
-            def system(t, y, m, L, c, a, E, sig_int):
-                """Define ode system of equations."""
-                mat = np.array([[0, 1], [-E / (L * m), -(L * c + a) / (L * m)]])
-                y_out = np.matmul(mat, y) + np.array([0, -sig_int[-1] / (L * m)])
-                return y_out
-
-            sol = solve_ivp(
-                system,
-                [
-                    self.time - self.dt,
-                    self.time,
-                ],  # time interval. overkill but leave it
-                self.U0,  # initial conditions
-                args=[self.m, self.length, self.c, self.alpha, self.E, sig_int],
-            )
-            duL_dt = sol["y"][1][-1]  # get the value at the final time
-            try:
-                d2uL_dt = np.gradient(sol["y"][1], sol["t"], edge_order=2)[-1]
-            except:
-                d2uL_dt = np.gradient(sol["y"][1], sol["t"], edge_order=1)[-1]
-
-        f = -self.c * duL_dt - self.m * d2uL_dt
-        self.u_current = self.u_current + self.dt * (
-            -(1 / self.tau) * self.u_current
-            - (1 / self.alpha) * sig_int
-            + self.pos * f / self.alpha
-        )
-        self.pos = self.pos_init + self.u_current
-        self.U0[0] = self.u_current[-1]
-        self.U0[1] = duL_dt
-        self.F.append(f)
-        self.u_hist.append(self.u_current)
         self.time += self.dt
 
     def one_step_drag(self, active_stress: np.ndarray) -> None:
