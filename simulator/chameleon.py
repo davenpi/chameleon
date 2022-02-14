@@ -39,6 +39,7 @@ class Chameleon(gym.Env):
         self.pos_init = np.linspace(0, init_length, self.n_elems)
         self.dx = self.pos_init[1] - self.pos_init[0]
         self.pos = copy.deepcopy(self.pos_init)
+        self.pos_history = deque([], maxlen=10_000)
         self.u_current = self.pos - self.pos_init
         self.u_hist = deque([], maxlen=10_000)
         self.u_hist.append(self.u_current)
@@ -84,12 +85,42 @@ class Chameleon(gym.Env):
         self.pos = self.pos_init + self.u_current
         self.u_hist.append(self.u_current)
 
-    def compute_boundary_stress(self, active_stress: np.ndarray) -> Tuple[float, float]:
+    def compute_boundary_stress(self, active_stress: np.ndarray) -> float:
         """Compute boundary stress F for a given active stress."""
         sig_int = cumtrapz(active_stress, dx=self.dx)
 
-        def system(t, y, m, L, c, a, E, sig_int):
-            """systems of equations specifying my system"""
+        def system(t, y, m, L, c, a, E, sig_int) -> np.ndarray:
+            """
+            System of equations coming from u_L ODE.
+
+            This function returns dy/dt (vector), the vector that comes from
+            turning the second order equation for u_L into a system of first
+            order equations.
+
+            Parameters
+            ----------
+            t : float
+                Current time in simulation.
+            y : np.ndarray
+                Current values of variables being solved for in ODE.
+            m : float
+                Mass terms.
+            L : float
+                Length of rod.
+            c : float
+                Drag coefficient.
+            a : float
+                Strain rate drag coefficient.
+            E : float
+                Young's Modulus.
+            sig_int : np.ndarray
+                Cumulative integral of sigma along the rod.
+
+            Returns
+            -------
+            y_out : np.ndarray
+                Current value of dy/dt for the ODE system.
+            """
             mat = np.array([[0, 1], [-E / (L * m), -(L * c + a) / (L * m)]])
             y_out = np.matmul(mat, y) + np.array([0, -sig_int[-1] / (L * m)])
             return y_out
@@ -103,7 +134,6 @@ class Chameleon(gym.Env):
             )
             u = [self.U0[0]]
         else:
-            # print(f"T span is {[self.time-self.dt, self.time]}")
             sol = solve_ivp(
                 system,
                 t_span=[self.time - self.dt, self.time],
@@ -112,46 +142,42 @@ class Chameleon(gym.Env):
                 args=[self.m, self.length, self.c, self.alpha, self.E, sig_int],
             )
             t = sol["t"]
-            # print(f"T shape{t.shape}")
             u = sol["y"][0]
             duL_dt = sol["y"][1]
             try:
                 d2uL_dt = np.gradient(duL_dt, t, edge_order=2)
             except:
                 d2uL_dt = np.gradient(duL_dt, t, edge_order=1)
-                # print("exception!")
             duL_dt = duL_dt[-1]
             d2uL_dt = d2uL_dt[-1]
             self.U0[0] = u[-1]
 
         self.U0[1] = duL_dt
-        F = -self.c * duL_dt - self.m * d2uL_dt
-        return F, u[-1]
+        f = -self.c * duL_dt - self.m * d2uL_dt
+        return f
 
     def one_step_return(self, active_stress: np.ndarray) -> None:
         """
-        Method which implements one step of the dynamics after reaching.
+        Method which implements one step of the dynamics during return steps.
 
-        I need to simulate the dynamics at the tip at each time step. The
-        update rule is du/dt = -gamma u - (1/alpha) int(sig_a) + Fx/(alpha).
-        The difference between this method and the other stepping method is
-        that this one implement the equation of motion with a different
-        boundary condition. I need to use this function to compute F(t) at
-        every time step and do it incrementally as the active stress is
-        specified.
+        The equation of motion is the same in this case but instead of using
+        a stress free boundary condition we add a drag and an inertial term at
+        the boundary. These represent effects from the food on the tongue of
+        the chameleon.
+
         """
         sig_int = cumtrapz(active_stress, dx=self.dx, initial=0)
-        F, u = self.compute_boundary_stress(active_stress)
-
-        # print(u - self.u_current[-1])  # compare U values at equal times
+        f = self.compute_boundary_stress(active_stress)
 
         self.u_current = self.u_current + self.dt * (
             -self.g * self.u_current
             - (1 / self.alpha) * sig_int
-            + F * self.pos_init / self.alpha
+            + f * self.pos_init / self.alpha
         )
-        self.F.append(F)
+        self.F.append(f)
         self.time += self.dt
+        self.pos = self.pos_init + self.u_current
+        self.pos_history.append(self.pos)
 
     def one_step_drag(self, active_stress: np.ndarray) -> None:
         """
