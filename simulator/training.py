@@ -26,7 +26,7 @@ parser.add_argument(
     "--target_position",
     type=float,
     help="Initial target position to reach to.",
-    default=0.18,
+    default=1.25,
 )
 parser.add_argument("-E", type=float, help="Young's Modulus of tongue.", default=1.0)
 parser.add_argument(
@@ -68,8 +68,12 @@ agents_dir = f"agents_a{atol}_target{target_pos}"
 os.makedirs(agents_dir, exist_ok=True)
 
 env = Chameleon(
-    E=E, target_pos=target_pos, atol=atol, dt=0.01
-)  # train = False just to make task easier for now
+    E=E,
+    target_pos=target_pos,
+    atol=atol,
+    dt=0.01,
+    train=True,
+)
 eval_env = Chameleon(E=E, target_pos=target_pos, atol=atol, dt=0.01)
 
 
@@ -91,18 +95,17 @@ def load_plot_results(monitor_file: str, monitor_dir: str) -> None:
     plt.clf()
 
 
-callback_on_best = StopTrainingOnRewardThreshold(reward_threshold=-0.1, verbose=0)
+# callback_on_best = StopTrainingOnRewardThreshold(reward_threshold=-0.1, verbose=0)
 for i in range(its):
     monitor_file = monitor_dir + f"/run{i}.monitor.csv"
     eval_file = monitor_dir + f"/run{i}.eval.csv"
     best_agent_path = agents_dir + f"/run{i}"
     if monitor:
-        env = Monitor(env, filename=monitor_file)
+        env = Monitor(env, filename=monitor_file, info_keywords=("target_pos",))
         eval_env = Monitor(eval_env, filename=eval_file)
     eval_callback = EvalCallback(
         eval_env,
         best_model_save_path=best_agent_path,
-        callback_on_new_best=callback_on_best,
         eval_freq=int(timesteps / 10),
         deterministic=True,
         render=False,
