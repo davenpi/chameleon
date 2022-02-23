@@ -130,20 +130,24 @@ class Chameleon(gym.Env):
                 - sig_int[-1]
             )
             u = [self.U0[0]]
+            self.u_tiny = u
+            # self.time_crunch = [0]
+            # self.u_tiny_deriv = [0]
         else:
             sol = solve_ivp(
                 system,
-                t_span=[self.time - self.dt, self.time],
-                # t_span=[self.time, self.time + self.dt],
+                # t_span=[self.time - self.dt, self.time],
+                t_span=[self.time, self.time + self.dt],
                 method="BDF",
                 y0=[self.U0[0], self.U0[1]],
                 args=[self.m, self.length, self.c, self.alpha, self.E, sig_int],
             )
             t = sol["t"]
-            self.time_crunch = t
+            # self.time_crunch = t
             u = sol["y"][0]
-            self.little_u = u
+            self.u_tiny = u
             duL_dt = sol["y"][1]
+            # self.u_tiny_deriv = duL_dt
             try:
                 d2uL_dt = np.gradient(duL_dt, t, edge_order=2)
             except:
@@ -173,28 +177,14 @@ class Chameleon(gym.Env):
             - (1 / self.alpha) * sig_int
             + f * self.pos_init / self.alpha
         )
-        # self.F.append(f)
-        # self.time += self.dt
+        # self.u_current[-1] = self.u_tiny[-1]
+        # self.time += self.dt  # UNCOMMENT FOR CALIBRATION
         du_dt = (self.u_current - self.u_hist[-1])[-1] / self.dt
         self.u_hist.append(self.u_current)
         self.u_velocity_history.append(du_dt)
+        self.U0[0] = self.u_current[-1]
+        self.U0[1] = du_dt
         self.pos = self.pos_init + self.u_current
-
-    def one_step_drag(self, active_stress: np.ndarray) -> None:
-        """
-        Step forward in time with drag at boundary.
-        """
-        sig_int = cumtrapz(active_stress, dx=self.dx, initial=0)
-        du_dtL = -(1 / (1 + self.c * self.length / self.alpha)) * (
-            self.g * self.u_current[-1] + (1 / self.alpha) * sig_int[-1]
-        )
-        self.u_current = self.u_current + self.dt * (
-            -self.g * self.u_current
-            - (1 / self.alpha) * sig_int
-            - (self.C * self.pos_init / self.alpha) * du_dtL
-        )
-        self.pos = self.pos_init + self.u_current
-        self.u_hist.append(self.u_current)
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
         const = action[0] * np.ones(self.n_elems)
@@ -302,3 +292,19 @@ class Chameleon(gym.Env):
 
     def render():
         pass
+
+    def one_step_drag(self, active_stress: np.ndarray) -> None:
+        """
+        Step forward in time with drag at boundary.
+        """
+        sig_int = cumtrapz(active_stress, dx=self.dx, initial=0)
+        du_dtL = -(1 / (1 + self.c * self.length / self.alpha)) * (
+            self.g * self.u_current[-1] + (1 / self.alpha) * sig_int[-1]
+        )
+        self.u_current = self.u_current + self.dt * (
+            -self.g * self.u_current
+            - (1 / self.alpha) * sig_int
+            - (self.C * self.pos_init / self.alpha) * du_dtL
+        )
+        self.pos = self.pos_init + self.u_current
+        self.u_hist.append(self.u_current)
