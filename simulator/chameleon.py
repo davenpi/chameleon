@@ -45,7 +45,7 @@ class Chameleon(gym.Env):
         self.observation_space = gym.spaces.Box(
             low=-10 * self.length, high=10 * self.length, shape=(1,)
         )
-        self.action_space = gym.spaces.Box(low=-1, high=1, shape=(1,))
+        self.action_space = gym.spaces.Box(low=-1, high=1, shape=(2,))
         self.learning_counter = 0
         self.episode_length = 9  # episode starts counting at zero
         self.active_stress_hist = deque([], maxlen=self.episode_length + 1)
@@ -183,16 +183,19 @@ class Chameleon(gym.Env):
         self.u_hist.append(self.u_current)
         self.u_velocity_history.append(du_dt)
         self.U0[0] = self.u_current[-1]
-        self.U0[1] = du_dt
+        # self.U0[1] = du_dt
         self.pos = self.pos_init + self.u_current
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, dict]:
-        const = action[0] * np.ones(self.n_elems)
+        const = action[0] * np.ones(25)
+        const2 = action[1] * np.ones(25)
+        const = np.pad(const, pad_width=(0, 25), mode="constant")
+        const2 = np.pad(const2, pad_width=(25, 0), mode="constant")
         if self.returning:
-            active_stress = 5_000 * const
+            active_stress = 5_000 * (const + const2)
             self.one_step_return(active_stress=active_stress)
         else:
-            active_stress = 50 * const
+            active_stress = 50 * (const + const2)
             self.one_step(active_stress=active_stress)
 
         self.learning_counter += 1
@@ -251,7 +254,8 @@ class Chameleon(gym.Env):
         else:
             info = {}
         diff = np.abs(self.target_pos - self.pos[-1])
-        reward -= diff
+        action_grad = np.abs(action[0] - action[1]) / (np.linalg.norm(action))
+        reward -= diff + action_grad
         self.time += self.dt
         return state, reward, done, info
 

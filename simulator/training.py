@@ -72,7 +72,7 @@ env = Chameleon(
     target_pos=target_pos,
     atol=atol,
     dt=0.01,
-    train=True,
+    train=False,
 )
 eval_env = Chameleon(E=E, target_pos=target_pos, atol=atol, dt=0.01)
 
