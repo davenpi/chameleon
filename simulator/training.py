@@ -5,7 +5,7 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from chameleon import Chameleon
-from stable_baselines3 import PPO
+from stable_baselines3 import PPO, DDPG
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.callbacks import (
     EvalCallback,
@@ -72,7 +72,7 @@ env = Chameleon(
     target_pos=target_pos,
     atol=atol,
     dt=0.01,
-    train=False,
+    train=True,
 )
 eval_env = Chameleon(E=E, target_pos=target_pos, atol=atol, dt=0.01)
 
@@ -112,7 +112,7 @@ for i in range(its):
         verbose=0,
     )
 
-    model = PPO("MlpPolicy", env, verbose=0)
+    model = DDPG("MlpPolicy", env, verbose=0)
     model.learn(total_timesteps=timesteps, callback=eval_callback)
     # Training results
     load_plot_results(monitor_file, monitor_dir)

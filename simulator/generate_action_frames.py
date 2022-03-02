@@ -6,7 +6,7 @@ import chameleon as ch
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.animation import FuncAnimation
-from stable_baselines3 import PPO
+from stable_baselines3 import PPO, DDPG
 
 parser = argparse.ArgumentParser()
 
@@ -22,7 +22,7 @@ model_path = args.model
 target_pos = args.target_pos
 atol = args.atol
 
-model = PPO.load(model_path)
+model =DDPG.load(model_path)
 
 env = ch.Chameleon(target_pos=target_pos, atol=atol, train=False, E=50)
 
