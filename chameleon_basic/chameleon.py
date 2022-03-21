@@ -255,7 +255,7 @@ class Chameleon(gym.Env):
             info = {}
         diff = np.abs(self.target_pos - self.pos[-1])
         # action_grad = np.abs(action[0] - action[1]) / (np.linalg.norm(action))
-        reward -= diff/self.length # + action_grad
+        reward -= diff / self.length  # + action_grad
         self.time += self.dt
         return state, reward, done, info
 

@@ -22,7 +22,7 @@ model_path = args.model
 target_pos = args.target_pos
 atol = args.atol
 
-model =DDPG.load(model_path)
+model = DDPG.load(model_path)
 
 env = ch.Chameleon(target_pos=target_pos, atol=atol, train=False, E=50)
 
